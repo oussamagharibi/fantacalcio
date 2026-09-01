@@ -23,6 +23,19 @@ export const bloccata = () => numeroAcquisti() > 0;
 
 export const configurata = (c = leggiConfig()) => CHIAVI.every((k) => c[k] !== undefined && c[k] !== null);
 
+/** Quanti giocatori ci sono in archivio, in totale e per ruolo. perRuolo ha
+ *  sempre tutte e quattro le chiavi, anche a zero: cosi' chi legge non deve
+ *  distinguere fra "ruolo assente" e "nessun giocatore di quel ruolo". */
+export function contaGiocatori() {
+  const perRuolo = Object.fromEntries(RUOLI.map((r) => [r, 0]));
+  let totale = 0;
+  for (const r of getDb().prepare('SELECT ruolo, count(*) AS n FROM players GROUP BY ruolo').all()) {
+    if (r.ruolo in perRuolo) perRuolo[r.ruolo] = r.n;
+    totale += r.n;
+  }
+  return { totale, perRuolo };
+}
+
 export function statoConfig() {
   const config = leggiConfig();
   return {
@@ -30,6 +43,7 @@ export function statoConfig() {
     bloccata: bloccata(),
     acquisti: numeroAcquisti(),
     squadre: getDb().prepare('SELECT count(*) AS n FROM teams').get().n,
+    giocatori: contaGiocatori(),
     config,
   };
 }

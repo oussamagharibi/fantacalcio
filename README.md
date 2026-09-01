@@ -68,7 +68,7 @@ Il filesystem di un container Railway e' **effimero**: viene ricreato da zero
 a ogni redeploy, riavvio o crash. Senza un volume montato su `/data`:
 
 - `asta.db` sparisce → configurazione lega, listone importato e acquisti persi
-- `data/listone.xlsx` sparisce → serve rifare `POST /api/listone/aggiorna`
+- `data/listone.xlsx` sparisce → serve ricaricarlo dalla schermata di setup
 - i backup in `data/backups/` spariscono
 
 Con il volume montato, Railway espone il mount point in
@@ -84,9 +84,20 @@ E' uno scenario previsto: all'avvio l'app crea il file del db e applica lo
 schema, `/api/config` risponde `configurata: false` e il frontend mostra la
 schermata di setup. Da li' si configurano budget, squadre e slot di rosa.
 
-Il listone invece non c'e': va caricato con `POST /api/listone/aggiorna`
-(scarica da Fantacalcio.it e importa) oppure copiando un `listone.xlsx` nella
-cartella dati e lanciando `npm run import`.
+Il listone invece non c'e' e va caricato: nella stessa schermata di setup c'e'
+il campo di upload. Scarica il listone Classic da fantacalcio.it (Quotazioni →
+Excel) e caricalo li'; il server valida il file, ne tiene una copia di backup e
+importa, mostrando righe lette e conteggio per ruolo.
+
+### Perche' l'upload e non il download automatico
+
+Esiste anche `POST /api/listone/aggiorna`, che scarica il file da solo, ma
+dalle reti di datacenter fantacalcio.it risponde **401**: vuole una sessione di
+browser. Da Railway quindi non funziona. L'endpoint resta perche' da una rete
+domestica va, ma la via affidabile e' l'upload manuale.
+
+In locale, in alternativa, si puo' copiare un `listone.xlsx` nella cartella
+dati e lanciare `npm run import`.
 
 ## API
 
@@ -95,7 +106,8 @@ cartella dati e lanciando `npm run import`.
 | GET | `/api/health` | stato del servizio |
 | GET | `/api/config` | configurazione, se e' bloccata, numero di acquisti |
 | POST | `/api/config` | salva la configurazione; `409` se ci sono gia' acquisti |
-| POST | `/api/listone/aggiorna` | riscarica il listone e reimporta; **solo prima dell'asta** |
+| POST | `/api/listone/upload` | carica un `.xlsx` via multipart e importa; **via principale** |
+| POST | `/api/listone/aggiorna` | riscarica il listone da fantacalcio.it e reimporta; da Railway da' 401 |
 | POST | `/api/reset` | cancella tutti gli acquisti e sblocca la configurazione |
 
 Qualunque altra rotta che non inizi per `/api/` restituisce `index.html`:

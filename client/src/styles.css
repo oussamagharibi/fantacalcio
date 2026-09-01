@@ -45,7 +45,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .squadre li { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
 .squadre li.mia { border-color: var(--acc); color: var(--acc); }
 
-.lock { color: #ffb454; }
+.lock, .avviso { color: #ffb454; }
 
 .listone { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 18px; }
 .listone h2 { font-size: 17px; margin: 0 0 4px; }

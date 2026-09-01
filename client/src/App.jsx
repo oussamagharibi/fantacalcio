@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { getConfig } from './api.js';
 import Setup from './Setup.jsx';
+import UploadListone from './UploadListone.jsx';
 
 export default function App() {
   const [stato, setStato] = useState(null);
   const [errore, setErrore] = useState(null);
   const [modifica, setModifica] = useState(false);
 
-  useEffect(() => {
+  const ricarica = () =>
     getConfig()
       .then(setStato)
       .catch((e) => setErrore(e.message));
+
+  useEffect(() => {
+    ricarica();
   }, []);
 
   if (errore)
@@ -70,6 +74,19 @@ export default function App() {
           </dd>
         </div>
         <div>
+          <dt>Listone</dt>
+          <dd>
+            {stato.giocatori.totale === 0 ? (
+              <span className="avviso">Listone non caricato</span>
+            ) : (
+              <>
+                {stato.giocatori.totale} giocatori ({stato.giocatori.perRuolo.P}P {stato.giocatori.perRuolo.D}D{' '}
+                {stato.giocatori.perRuolo.C}C {stato.giocatori.perRuolo.A}A)
+              </>
+            )}
+          </dd>
+        </div>
+        <div>
           <dt>Acquisti registrati</dt>
           <dd>{stato.acquisti}</dd>
         </div>
@@ -90,6 +107,12 @@ export default function App() {
       ) : (
         <button onClick={() => setModifica(true)}>Modifica configurazione</button>
       )}
+
+      {/* Fuori dal ramo bloccata/non bloccata: il listone si carica sempre, anche
+          a config bloccata, altrimenti a meta' asta non sarebbe piu' aggiornabile.
+          onImportato ricarica lo stato: il conteggio qui sopra sta a due righe di
+          distanza, lasciarlo fermo su "non caricato" sembrerebbe un errore. */}
+      <UploadListone onImportato={ricarica} />
     </main>
   );
 }
