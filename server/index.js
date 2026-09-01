@@ -1,0 +1,104 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import Fastify from 'fastify';
+import fastifyStatic from '@fastify/static';
+import { getDb, backup, DB_PATH, DATA_DIR, SU_VOLUME, ROOT } from './db.js';
+import { statoConfig, validaConfig, salvaConfig, bloccata, numeroAcquisti } from './lib/config.js';
+import { scaricaListone, ErroreDownload, ErroreListone } from './lib/listone.js';
+
+const PORT = Number(process.env.PORT ?? 3001);
+/** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
+ *  dall'esterno, e su localhost soltanto non lo vedrebbe. */
+const HOST = process.env.HOST ?? '0.0.0.0';
+
+const DIST = path.join(ROOT, 'client', 'dist');
+const CLIENT_BUILDATO = fs.existsSync(path.join(DIST, 'index.html'));
+
+getDb(); // crea/apre il db e applica lo schema all'avvio
+
+const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
+
+/** Sito unico: lo stesso servizio espone le API e il frontend buildato.
+ *  Se client/dist non c'e' (sviluppo con vite a parte) il server parte lo
+ *  stesso e serve solo le API, invece di rifiutarsi di avviarsi. */
+if (CLIENT_BUILDATO) app.register(fastifyStatic, { root: DIST, wildcard: false });
+
+/** Il routing del client e' lato browser: ogni path non-API deve restituire
+ *  index.html, altrimenti un refresh su una schermata interna darebbe 404. */
+app.setNotFoundHandler((req, reply) => {
+  if (req.url.startsWith('/api/'))
+    return reply.code(404).send({ error: `rotta non trovata: ${req.method} ${req.url}` });
+  if (!CLIENT_BUILDATO)
+    return reply.code(503).send({ error: 'client non buildato: lancia "npm run build" oppure usa "npm start"' });
+  return reply.sendFile('index.html');
+});
+
+app.get('/api/health', () => {
+  const s = statoConfig();
+  return { ok: true, configurata: s.configurata, squadre: s.squadre };
+});
+
+app.get('/api/config', () => statoConfig());
+
+app.post('/api/config', (req, reply) => {
+  if (bloccata())
+    return reply.code(409).send({
+      error: `Configurazione bloccata: ci sono gia' ${numeroAcquisti()} acquisti registrati. Per sbloccarla usa POST /api/reset (cancella tutti gli acquisti).`,
+    });
+
+  const v = validaConfig(req.body ?? {});
+  if (!v.ok) return reply.code(400).send({ error: v.errore, campo: v.campo });
+
+  const bak = backup('pre-config');
+  const teams = salvaConfig(v.valori);
+  req.log.info({ teams, backup: bak }, 'config salvata');
+  return { ok: true, backup: bak, teams, ...statoConfig() };
+});
+
+/** Riscarica il listone da fantacalcio.it e reimporta. Da usare SOLO prima
+ *  dell'asta, mai durante: le quotazioni cambierebbero sotto agli acquisti gia'
+ *  registrati. Se il download fallisce il file locale resta quello di prima e
+ *  "npm run import" continua a funzionare. */
+app.post('/api/listone/aggiorna', async (req, reply) => {
+  try {
+    const r = await scaricaListone();
+    req.log.info(
+      { righeLette: r.righeLette, inserite: r.inserite, aggiornate: r.aggiornate, scartate: r.scartate.length },
+      'listone aggiornato'
+    );
+    return {
+      scaricatoIl: r.scaricatoIl,
+      righeLette: r.righeLette,
+      inserite: r.inserite,
+      aggiornate: r.aggiornate,
+      scartate: r.scartate.length,
+      ...(r.scartate.length ? { dettaglioScartate: r.scartate } : {}),
+      backupListone: r.backupListone,
+      backupDb: r.backupDb,
+    };
+  } catch (e) {
+    if (e instanceof ErroreDownload || e instanceof ErroreListone) {
+      req.log.error({ err: e }, 'aggiornamento listone fallito');
+      return reply.code(502).send({ error: e.message, ...(e.righeGrezze ? { righeGrezze: e.righeGrezze } : {}) });
+    }
+    throw e;
+  }
+});
+
+app.post('/api/reset', (req) => {
+  const bak = backup('pre-reset');
+  const cancellati = getDb().prepare('DELETE FROM purchases').run().changes;
+  req.log.warn({ cancellati, backup: bak }, 'reset acquisti');
+  return { ok: true, acquistiCancellati: cancellati, backup: bak, ...statoConfig() };
+});
+
+app.listen({ port: PORT, host: HOST }).catch((e) => {
+  app.log.error(e);
+  process.exit(1);
+});
+
+console.log(`[server] db in uso: ${DB_PATH}`);
+console.log(
+  `[server] dati in : ${DATA_DIR}${SU_VOLUME ? ' (volume persistente)' : ' (cartella locale: su Railway monta un volume, vedi README)'}`
+);
+console.log(`[server] client  : ${CLIENT_BUILDATO ? DIST : 'non buildato, vengono servite solo le API'}`);

@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+/data/*.db
+/data/backups/
+/data/listone.xlsx
+client/dist/
+*.log

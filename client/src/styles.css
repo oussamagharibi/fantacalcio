@@ -1,0 +1,48 @@
+:root {
+  color-scheme: dark;
+  --bg: #12141a;
+  --fg: #e8eaf0;
+  --muted: #8b90a0;
+  --acc: #4ea1ff;
+  --ko: #ff5f5f;
+  --line: #2a2e3a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px; }
+h1 { margin: 0 0 4px; font-size: 22px; }
+.muted { color: var(--muted); }
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); flex: 1; }
+input, select {
+  background: #1b1e26; color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; font: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: 0; }
+
+.riga { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 0 0 14px; }
+legend { color: var(--muted); font-size: 13px; padding: 0 6px; }
+.griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.azioni { display: flex; gap: 10px; margin-top: 18px; }
+
+button {
+  background: var(--acc); color: #08111e; border: 0; border-radius: 6px;
+  padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer;
+}
+button.secondario { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+button:disabled { opacity: 0.6; cursor: default; }
+
+.err { color: var(--ko); }
+.ko input, .ko select, fieldset.ko { border-color: var(--ko); }
+
+.riepilogo { display: grid; gap: 6px; margin: 16px 0; }
+.riepilogo div { display: flex; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.riepilogo dt { color: var(--muted); min-width: 170px; margin: 0; }
+.riepilogo dd { margin: 0; }
+
+.squadre { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.squadre li { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.squadre li.mia { border-color: var(--acc); color: var(--acc); }
+
+.lock { color: #ffb454; }
