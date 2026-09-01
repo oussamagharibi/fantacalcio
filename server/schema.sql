@@ -36,6 +36,25 @@ CREATE TABLE IF NOT EXISTS config (
   valore TEXT
 );
 
+-- Statistiche storiche, una riga per giocatore per stagione. Solo dati grezzi
+-- come li pubblica Fantacalcio.it: nessun indice o punteggio calcolato qui.
+CREATE TABLE IF NOT EXISTS stats (
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  stagione TEXT NOT NULL,
+  pv INTEGER,
+  mv REAL,
+  fm REAL,
+  gol INTEGER,
+  gs INTEGER,
+  rig_segnati INTEGER,
+  rig_tirati INTEGER,
+  rig_parati INTEGER,
+  assist INTEGER,
+  amm INTEGER,
+  esp INTEGER,
+  PRIMARY KEY (player_id, stagione)
+);
+
 CREATE TABLE IF NOT EXISTS articles (
   url TEXT PRIMARY KEY,
   titolo TEXT,

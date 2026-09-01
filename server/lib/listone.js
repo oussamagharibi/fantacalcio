@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import * as XLSX from 'xlsx';
 import { getDb, tx, backup, perLog, DATA_DIR } from '../db.js';
+import { ErroreFoglio, apriFoglio, indiciColonne, intero } from './foglio.js';
+
+/** Stessa classe di ErroreFoglio: il nome storico resta perche' index.js e
+ *  import.js lo usano con instanceof. */
+export { ErroreFoglio as ErroreListone };
 
 export const LISTONE_PATH = process.env.LISTONE_PATH ?? path.join(DATA_DIR, 'listone.xlsx');
 export const LISTONE_URL = process.env.LISTONE_URL ?? 'https://www.fantacalcio.it/api/v1/Excel/prices/21/1';
@@ -28,14 +32,6 @@ const COLONNE = {
 /** Se mancano si importa lo stesso, con NULL: non sono indispensabili per l'asta. */
 const COLONNE_OPZIONALI = ['fvm', 'quotazioneIniziale'];
 
-export class ErroreListone extends Error {
-  constructor(messaggio, { righeGrezze = null } = {}) {
-    super(messaggio);
-    this.name = 'ErroreListone';
-    this.righeGrezze = righeGrezze;
-  }
-}
-
 export class ErroreDownload extends Error {
   constructor(messaggio) {
     super(messaggio);
@@ -43,52 +39,15 @@ export class ErroreDownload extends Error {
   }
 }
 
-const normalizza = (v) => String(v ?? '').trim().toLowerCase();
-
-const intero = (v) =>
-  Number.isFinite(v) ? Math.trunc(v) : /^-?\d+$/.test(String(v ?? '').trim()) ? Number(String(v).trim()) : null;
-
-/** L'header non e' mai la prima riga: sopra c'e' almeno un titolo di servizio
- *  ("Quotazioni Fantacalcio Stagione 2026 27"). Lo cerchiamo per contenuto. */
-const eIntestazione = (riga) => {
-  if (!Array.isArray(riga)) return false;
-  const celle = riga.map(normalizza);
-  return celle.includes('nome') && celle.includes('squadra');
-};
-
 /** Legge il listone da un path o da un buffer gia' in memoria (serve al download:
  *  cosi' si valida il file scaricato PRIMA di sovrascrivere quello buono). */
 export function leggiListone(origine = LISTONE_PATH) {
-  const buf = Buffer.isBuffer(origine) ? origine : fs.readFileSync(origine);
-  const wb = XLSX.read(buf, { type: 'buffer' });
-  const foglio = wb.SheetNames.includes(FOGLIO) ? FOGLIO : wb.SheetNames[0];
-  if (!foglio) throw new ErroreListone('il file non contiene nessun foglio');
-  const griglia = XLSX.utils.sheet_to_json(wb.Sheets[foglio], { header: 1, raw: true, blankrows: false });
-
-  const rigaHeader = griglia.findIndex(eIntestazione);
-  if (rigaHeader < 0)
-    throw new ErroreListone(
-      'intestazione non trovata nel foglio "' +
-        foglio +
-        '": nessuna riga contiene sia "Nome" che "Squadra". Il formato del listone e\' cambiato, ' +
-        'oppure il file non e\' un listone Fantacalcio.it.',
-      { righeGrezze: griglia.slice(0, 5) }
-    );
-
-  const header = griglia[rigaHeader].map(normalizza);
-  const idx = {};
-  for (const [campo, etichetta] of Object.entries(COLONNE)) idx[campo] = header.indexOf(normalizza(etichetta));
-  const mancanti = Object.entries(idx)
-    .filter(([campo, i]) => i < 0 && !COLONNE_OPZIONALI.includes(campo))
-    .map(([campo]) => COLONNE[campo]);
-  if (mancanti.length)
-    throw new ErroreListone('colonne mancanti nel foglio "' + foglio + '": ' + mancanti.join(', '), {
-      righeGrezze: griglia.slice(0, 5),
-    });
+  const aperto = apriFoglio(origine, { foglioPreferito: FOGLIO, descrizione: 'il listone' });
+  const { foglio, rigaHeader, dati: grezze } = aperto;
+  const idx = indiciColonne(aperto, COLONNE, COLONNE_OPZIONALI, 'il listone');
 
   const righe = [];
   const scartate = [];
-  const grezze = griglia.slice(rigaHeader + 1);
   for (const [n, riga] of grezze.entries()) {
     const numeroRiga = rigaHeader + n + 2; // 1-based, come la vede Excel
     const scarta = (motivo) => scartate.push({ riga: numeroRiga, motivo, dati: riga });
@@ -238,7 +197,7 @@ export function importaRighe(letto, { segnaUscite = true } = {}) {
  *  validato e letto per intero: se qualcosa non va, resta buono quello vecchio. */
 export function salvaEImporta(buf, provenienza = 'il file') {
   if (buf.length < DIMENSIONE_MINIMA)
-    throw new ErroreListone(
+    throw new ErroreFoglio(
       provenienza +
         ' pesa ' +
         buf.length +
@@ -248,7 +207,7 @@ export function salvaEImporta(buf, provenienza = 'il file') {
     );
   const magic = [...buf.subarray(0, 4)].map((b) => b.toString(16).padStart(2, '0')).join(' ');
   if (!buf.subarray(0, 4).equals(MAGIC_ZIP))
-    throw new ErroreListone(
+    throw new ErroreFoglio(
       provenienza +
         ' non e\' un xlsx (magic number ' +
         magic +

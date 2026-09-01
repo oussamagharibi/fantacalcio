@@ -12,8 +12,9 @@
     "build": "npm --prefix client install && npm --prefix client run build",
     "client": "npm --prefix client run dev",
     "import": "node --env-file-if-exists=.env server/import.js",
+    "import-stats": "node --env-file-if-exists=.env server/import-stats.js",
     "schema": "node server/lib/dumpSchema.js",
-    "check": "node --check server/index.js && node --check server/db.js && node --check server/import.js && node --check server/lib/config.js && node --check server/lib/listone.js && node --check server/lib/dumpSchema.js && node --check scripts/start.js"
+    "check": "node --check server/index.js && node --check server/db.js && node --check server/import.js && node --check server/import-stats.js && node --check server/lib/config.js && node --check server/lib/foglio.js && node --check server/lib/listone.js && node --check server/lib/stats.js && node --check server/lib/dumpSchema.js && node --check scripts/start.js"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.1",
