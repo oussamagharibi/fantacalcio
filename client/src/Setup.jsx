@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { postConfig } from './api.js';
+import { postConfig, uploadListone } from './api.js';
 
 const SLOT = [
   ['slotP', 'Portieri'],
   ['slotD', 'Difensori'],
   ['slotC', 'Centrocampisti'],
   ['slotA', 'Attaccanti'],
+];
+
+const RUOLI = [
+  ['P', 'Portieri'],
+  ['D', 'Difensori'],
+  ['C', 'Centrocampisti'],
+  ['A', 'Attaccanti'],
 ];
 
 const nomiDefault = (n) => Array.from({ length: n }, (_, i) => `Squadra ${i + 1}`);
@@ -24,6 +31,11 @@ export default function Setup({ iniziale = {}, onSalvata, onAnnulla }) {
   const [errore, setErrore] = useState(null);
   const [campo, setCampo] = useState(null);
   const [invio, setInvio] = useState(false);
+
+  const [fileListone, setFileListone] = useState(null);
+  const [caricoListone, setCaricoListone] = useState(false);
+  const [esitoListone, setEsitoListone] = useState(null);
+  const [erroreListone, setErroreListone] = useState(null);
 
   const slotTotali = SLOT.reduce((s, [k]) => s + (Number(slot[k]) || 0), 0);
 
@@ -56,6 +68,26 @@ export default function Setup({ iniziale = {}, onSalvata, onAnnulla }) {
       setCampo(err.campo ?? null);
     } finally {
       setInvio(false);
+    }
+  }
+
+  function scegliFile(e) {
+    setFileListone(e.target.files?.[0] ?? null);
+    setEsitoListone(null);
+    setErroreListone(null);
+  }
+
+  async function carica() {
+    if (!fileListone) return;
+    setCaricoListone(true);
+    setErroreListone(null);
+    setEsitoListone(null);
+    try {
+      setEsitoListone(await uploadListone(fileListone));
+    } catch (err) {
+      setErroreListone(err.message);
+    } finally {
+      setCaricoListone(false);
     }
   }
 
@@ -127,6 +159,46 @@ export default function Setup({ iniziale = {}, onSalvata, onAnnulla }) {
           )}
         </div>
       </form>
+
+      <section className="listone">
+        <h2>Listone giocatori</h2>
+        <p className="muted">
+          Scarica il listone Classic da fantacalcio.it (Quotazioni &rarr; Excel) e caricalo qui. Il download
+          automatico dal server non e' affidabile: fantacalcio.it risponde 401 alle richieste che partono da un
+          datacenter.
+        </p>
+
+        <div className="riga">
+          <label>
+            File .xlsx
+            <input type="file" accept=".xlsx" onChange={scegliFile} disabled={caricoListone} />
+          </label>
+          <button type="button" onClick={carica} disabled={!fileListone || caricoListone}>
+            {caricoListone ? 'Importo...' : 'Carica e importa'}
+          </button>
+        </div>
+
+        {erroreListone && <p className="err">{erroreListone}</p>}
+
+        {esitoListone && (
+          <div className="esito">
+            <p>
+              <strong>{esitoListone.totale} giocatori in archivio</strong> da {esitoListone.nomeFile}
+            </p>
+            <p className="muted">
+              {esitoListone.righeLette} righe lette &middot; {esitoListone.inserite} inserite &middot;{' '}
+              {esitoListone.aggiornate} aggiornate &middot; {esitoListone.scartate} scartate
+            </p>
+            <ul className="squadre">
+              {RUOLI.map(([k, etichetta]) => (
+                <li key={k}>
+                  {etichetta}: <strong>{esitoListone.perRuolo?.[k] ?? 0}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

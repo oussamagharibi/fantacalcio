@@ -14,3 +14,10 @@ export const postConfig = (c) =>
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(c),
   });
+
+/** Niente content-type a mano: lo imposta il browser con il boundary giusto. */
+export function uploadListone(file) {
+  const dati = new FormData();
+  dati.append('file', file);
+  return json('/api/listone/upload', { method: 'POST', body: dati });
+}

@@ -49,6 +49,14 @@ export function getDb() {
   return db;
 }
 
+/** Path da mostrare in log e risposte: relativo se sta dentro al progetto,
+ *  assoluto altrimenti. Con un volume montato (DATA_DIR = /data, progetto in
+ *  /app) il relativo sarebbe un "../data/..." illeggibile. */
+export const perLog = (p) => {
+  const rel = path.relative(ROOT, p);
+  return rel.startsWith('..') ? p : rel;
+};
+
 /** Snapshot del file db prima di ogni scrittura. Ritorna il path, o null se il db non esiste. */
 export function backup(tag) {
   if (!fs.existsSync(DB_PATH)) return null;
@@ -57,7 +65,7 @@ export function backup(tag) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const dest = path.join(dir, `asta-${stamp}-${tag}.db`);
   fs.copyFileSync(DB_PATH, dest);
-  return path.relative(ROOT, dest);
+  return perLog(dest);
 }
 
 /** node:sqlite non ha .transaction(): questo e' l'equivalente minimo. */

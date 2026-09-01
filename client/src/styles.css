@@ -46,3 +46,11 @@ button:disabled { opacity: 0.6; cursor: default; }
 .squadre li.mia { border-color: var(--acc); color: var(--acc); }
 
 .lock { color: #ffb454; }
+
+.listone { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 18px; }
+.listone h2 { font-size: 17px; margin: 0 0 4px; }
+.listone .riga { align-items: flex-end; margin-top: 14px; }
+input[type='file'] { padding: 6px; cursor: pointer; }
+.esito { border: 1px solid var(--acc); border-radius: 8px; padding: 12px; margin-top: 14px; }
+.esito p { margin: 0 0 6px; }
+.esito .squadre { margin: 10px 0 0; }

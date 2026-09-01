@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import * as XLSX from 'xlsx';
-import { getDb, tx, backup, DATA_DIR, ROOT } from '../db.js';
+import { getDb, tx, backup, perLog, DATA_DIR } from '../db.js';
 
 export const LISTONE_PATH = process.env.LISTONE_PATH ?? path.join(DATA_DIR, 'listone.xlsx');
 export const LISTONE_URL = process.env.LISTONE_URL ?? 'https://www.fantacalcio.it/api/v1/Excel/prices/21/1';
@@ -196,15 +196,62 @@ export function importaRighe(letto) {
     scartate: letto.scartate,
     backupDb,
     totale: getDb().prepare('SELECT count(*) AS n FROM players').get().n,
+    perRuolo: Object.fromEntries(
+      getDb()
+        .prepare('SELECT ruolo, count(*) AS n FROM players GROUP BY ruolo')
+        .all()
+        .map((r) => [r.ruolo, r.n])
+    ),
   };
+}
+
+/** Validazione, backup e import di un listone gia' in memoria: identici per il
+ *  file caricato a mano e per quello scaricato. Cambia la provenienza, non i
+ *  controlli. Il file esistente si tocca solo dopo che il nuovo e' stato
+ *  validato e letto per intero: se qualcosa non va, resta buono quello vecchio. */
+export function salvaEImporta(buf, provenienza = 'il file') {
+  if (buf.length < DIMENSIONE_MINIMA)
+    throw new ErroreListone(
+      provenienza +
+        ' pesa ' +
+        buf.length +
+        ' byte (minimo ' +
+        DIMENSIONE_MINIMA +
+        '): scartato, il listone esistente non e\' stato toccato.'
+    );
+  const magic = [...buf.subarray(0, 4)].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+  if (!buf.subarray(0, 4).equals(MAGIC_ZIP))
+    throw new ErroreListone(
+      provenienza +
+        ' non e\' un xlsx (magic number ' +
+        magic +
+        ', atteso 50 4b 03 04): scartato, il listone esistente non e\' stato toccato.'
+    );
+
+  const letto = leggiListone(buf);
+
+  let backupListone = null;
+  if (fs.existsSync(LISTONE_PATH)) {
+    const dir = path.join(DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dest = path.join(dir, 'listone-' + stamp + '.xlsx');
+    fs.copyFileSync(LISTONE_PATH, dest);
+    backupListone = perLog(dest);
+  }
+  fs.mkdirSync(path.dirname(LISTONE_PATH), { recursive: true });
+  fs.writeFileSync(LISTONE_PATH, buf);
+
+  return { backupListone, ...importaRighe(letto) };
 }
 
 /** Import dal file locale: non tocca la rete, deve funzionare sempre. */
 export const importaDaFile = (origine = LISTONE_PATH) => importaRighe(leggiListone(origine));
 
 /** Scarica il listone e reimporta. Da usare SOLO prima dell'asta, mai durante.
- *  Se qualcosa va storto il file esistente non viene toccato: si valida (magic
- *  number, dimensione, parsing completo) prima di sovrascrivere. */
+ *  Attenzione: da un IP di datacenter fantacalcio.it risponde spesso 401, quindi
+ *  in produzione la via buona e' l'upload manuale (POST /api/listone/upload).
+ *  Questa resta utile quando la rete di partenza e' "normale". */
 export async function scaricaListone() {
   let res;
   try {
@@ -227,35 +274,5 @@ export async function scaricaListone() {
     );
 
   const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length < DIMENSIONE_MINIMA)
-    throw new ErroreDownload(
-      'il file scaricato pesa ' +
-        buf.length +
-        ' byte (minimo ' +
-        DIMENSIONE_MINIMA +
-        '): scartato, il listone esistente non e\' stato toccato.'
-    );
-  const magic = [...buf.subarray(0, 4)].map((b) => b.toString(16).padStart(2, '0')).join(' ');
-  if (!buf.subarray(0, 4).equals(MAGIC_ZIP))
-    throw new ErroreDownload(
-      'il file scaricato non e\' un xlsx (magic number ' +
-        magic +
-        ', atteso 50 4b 03 04): scartato, il listone esistente non e\' stato toccato.'
-    );
-
-  // Parsing prima della scrittura: se non e' un listone leggibile si esce con il file vecchio intatto.
-  const letto = leggiListone(buf);
-
-  let backupListone = null;
-  if (fs.existsSync(LISTONE_PATH)) {
-    const dir = path.join(DATA_DIR, 'backups');
-    fs.mkdirSync(dir, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const dest = path.join(dir, 'listone-' + stamp + '.xlsx');
-    fs.copyFileSync(LISTONE_PATH, dest);
-    backupListone = path.relative(ROOT, dest);
-  }
-  fs.writeFileSync(LISTONE_PATH, buf);
-
-  return { scaricatoIl: new Date().toISOString(), backupListone, ...importaRighe(letto) };
+  return { scaricatoIl: new Date().toISOString(), ...salvaEImporta(buf, 'il file scaricato') };
 }
