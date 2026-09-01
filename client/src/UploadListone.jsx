@@ -67,7 +67,15 @@ export default function UploadListone({ onImportato }) {
           <p className="muted">
             {esito.righeLette} righe lette &middot; {esito.inserite} inserite &middot; {esito.aggiornate} aggiornate
             &middot; {esito.scartate} scartate
+            {esito.usciti > 0 && <> &middot; {esito.usciti} usciti dal listino</>}
+            {esito.rientrati > 0 && <> &middot; {esito.rientrati} rientrati</>}
           </p>
+          {esito.usciteSaltate > 0 && (
+            <p className="avviso">
+              {esito.usciteSaltate} giocatori non compaiono nel file: troppi per essere un aggiornamento normale.
+              Nessuna uscita registrata, controlla di aver caricato il listone completo.
+            </p>
+          )}
           <ul className="squadre">
             {RUOLI.map(([k, etichetta]) => (
               <li key={k}>

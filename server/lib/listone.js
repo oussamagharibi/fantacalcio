@@ -164,28 +164,50 @@ function assegnaFasce(righe) {
   }
 }
 
+/** Oltre questa quota di archivio che finirebbe fuori listino, l'import smette
+ *  di segnare le uscite: un salto del genere non e' il mercato, e' il file
+ *  sbagliato (un singolo foglio per ruolo, il listone di un'altra lega). Meglio
+ *  non toccare nessuno e dirlo, che far sparire meta' rosa dalla ricerca. */
+export const SOGLIA_USCITE = 0.25;
+
 /** Scrive le righe gia' lette. Idempotente sull'Id ufficiale Fantacalcio.it:
  *  rilanciare l'import due volte lascia lo stesso stato finale.
  *  note e note_generated_at NON sono nella UPDATE: le produce lo step 8 e non
- *  devono sparire a ogni reimport. */
-export function importaRighe(letto) {
+ *  devono sparire a ogni reimport.
+ *  Chi sparisce dal listone prende una data in assente_dal, mai una DELETE:
+ *  potrebbe essere gia' stato acquistato e purchases lo referenzia. */
+export function importaRighe(letto, { segnaUscite = true } = {}) {
   const backupDb = backup('pre-import');
-  const esistenti = new Set(getDb().prepare('SELECT id FROM players').all().map((r) => r.id));
-  const { inserite, aggiornate } = tx((d) => {
+  const prima = new Map(getDb().prepare('SELECT id, assente_dal FROM players').all().map((r) => [r.id, r.assente_dal]));
+  const nelFile = new Set(letto.righe.map((r) => r.id));
+  const usciti = [...prima].filter(([id, dal]) => dal === null && !nelFile.has(id)).map(([id]) => id);
+  const troppi = prima.size > 0 && usciti.length > prima.size * SOGLIA_USCITE;
+  const segna = segnaUscite && !troppi;
+  const adesso = new Date().toISOString();
+
+  const { inserite, aggiornate, rientrati } = tx((d) => {
+    // Prima una data a tutti quelli che ce l'avevano NULL, poi l'upsert la
+    // rimette a NULL per chi c'e' nel file. Evita una NOT IN con 500+ id, e
+    // soprattutto non tocca chi una data ce l'aveva gia': quella e' la data
+    // della sua uscita e non va riscritta a ogni reimport.
+    if (segna) d.prepare('UPDATE players SET assente_dal = ? WHERE assente_dal IS NULL').run(adesso);
     const up = d.prepare(
-      `INSERT INTO players (id, nome, squadra, ruolo, quotazione, quotazione_iniziale, fvm, rapporto_fvm, fascia)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO players (id, nome, squadra, ruolo, quotazione, quotazione_iniziale, fvm, rapporto_fvm, fascia, assente_dal)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
        ON CONFLICT(id) DO UPDATE SET
          nome = excluded.nome, squadra = excluded.squadra, ruolo = excluded.ruolo,
          quotazione = excluded.quotazione, quotazione_iniziale = excluded.quotazione_iniziale,
-         fvm = excluded.fvm, rapporto_fvm = excluded.rapporto_fvm, fascia = excluded.fascia`
+         fvm = excluded.fvm, rapporto_fvm = excluded.rapporto_fvm, fascia = excluded.fascia,
+         assente_dal = NULL`
     );
     let ins = 0;
+    let rie = 0;
     for (const r of letto.righe) {
       up.run(r.id, r.nome, r.squadra, r.ruolo, r.quotazione, r.quotazione_iniziale, r.fvm, r.rapporto_fvm, r.fascia);
-      if (!esistenti.has(r.id)) ins++;
+      if (!prima.has(r.id)) ins++;
+      else if (prima.get(r.id) !== null) rie++;
     }
-    return { inserite: ins, aggiornate: letto.righe.length - ins };
+    return { inserite: ins, aggiornate: letto.righe.length - ins, rientrati: rie };
   });
   return {
     foglio: letto.foglio,
@@ -194,6 +216,11 @@ export function importaRighe(letto) {
     inserite,
     aggiornate,
     scartate: letto.scartate,
+    usciti: segna ? usciti.length : 0,
+    rientrati,
+    // Valorizzato solo quando la soglia ha fermato le uscite: serve a far
+    // comparire un avviso invece di un silenzioso "non e' successo niente".
+    usciteSaltate: troppi ? usciti.length : 0,
     backupDb,
     totale: getDb().prepare('SELECT count(*) AS n FROM players').get().n,
     perRuolo: Object.fromEntries(

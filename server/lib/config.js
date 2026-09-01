@@ -23,17 +23,26 @@ export const bloccata = () => numeroAcquisti() > 0;
 
 export const configurata = (c = leggiConfig()) => CHIAVI.every((k) => c[k] !== undefined && c[k] !== null);
 
-/** Quanti giocatori ci sono in archivio, in totale e per ruolo. perRuolo ha
- *  sempre tutte e quattro le chiavi, anche a zero: cosi' chi legge non deve
- *  distinguere fra "ruolo assente" e "nessun giocatore di quel ruolo". */
+/** Quanti giocatori ci sono in archivio. perRuolo ha sempre tutte e quattro le
+ *  chiavi, anche a zero: cosi' chi legge non deve distinguere fra "ruolo assente"
+ *  e "nessun giocatore di quel ruolo".
+ *  perRuolo conta solo chi e' ancora in listino (assente_dal IS NULL), perche' e'
+ *  il numero che serve in asta; totale comprende anche gli usciti, che restano in
+ *  archivio perche' possono essere gia' stati acquistati. */
 export function contaGiocatori() {
   const perRuolo = Object.fromEntries(RUOLI.map((r) => [r, 0]));
   let totale = 0;
-  for (const r of getDb().prepare('SELECT ruolo, count(*) AS n FROM players GROUP BY ruolo').all()) {
-    if (r.ruolo in perRuolo) perRuolo[r.ruolo] = r.n;
+  let attivi = 0;
+  const righe = getDb()
+    .prepare('SELECT ruolo, assente_dal IS NULL AS attivo, count(*) AS n FROM players GROUP BY ruolo, assente_dal IS NULL')
+    .all();
+  for (const r of righe) {
     totale += r.n;
+    if (!r.attivo) continue;
+    attivi += r.n;
+    if (r.ruolo in perRuolo) perRuolo[r.ruolo] = r.n;
   }
-  return { totale, perRuolo };
+  return { totale, attivi, nonPiuInListino: totale - attivi, perRuolo };
 }
 
 export function statoConfig() {

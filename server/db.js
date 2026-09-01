@@ -19,17 +19,20 @@ let db = null;
  *  schema.sql da solo non basta: CREATE TABLE IF NOT EXISTS non tocca le tabelle
  *  gia' create, quindi un db esistente non vedrebbe mai la colonna nuova.
  *  Ogni voce deve restare sicura da rieseguire all'infinito. */
-const COLONNE_AGGIUNTE = [{ tabella: 'players', colonna: 'quotazione_iniziale', tipo: 'INTEGER' }];
+const COLONNE_AGGIUNTE = [
+  { tabella: 'players', colonna: 'quotazione_iniziale', definizione: 'INTEGER' },
+  { tabella: 'players', colonna: 'assente_dal', definizione: 'TEXT' },
+];
 
 /** Applica gli ALTER mancanti. Non fallisce se la colonna c'e' gia': la
  *  presenza si controlla prima, invece di intercettare l'errore di SQLite. */
 function migra(d) {
   const applicate = [];
-  for (const { tabella, colonna, tipo } of COLONNE_AGGIUNTE) {
+  for (const { tabella, colonna, definizione } of COLONNE_AGGIUNTE) {
     const presenti = d.prepare(`PRAGMA table_info(${tabella})`).all();
     if (!presenti.length || presenti.some((c) => c.name === colonna)) continue;
     if (!applicate.length) backup('pre-migrazione'); // solo se c'e' davvero da migrare
-    d.exec(`ALTER TABLE ${tabella} ADD COLUMN ${colonna} ${tipo}`);
+    d.exec(`ALTER TABLE ${tabella} ADD COLUMN ${colonna} ${definizione}`);
     applicate.push(`${tabella}.${colonna}`);
   }
   if (applicate.length) console.log(`[db] migrazioni applicate: ${applicate.join(', ')}`);

@@ -13,6 +13,12 @@ try {
   console.log(
     `[import] righe lette: ${r.righeLette} | inserite: ${r.inserite} | aggiornate: ${r.aggiornate} | scartate: ${r.scartate.length}`
   );
+  console.log(`[import] listino   : ${r.usciti} usciti | ${r.rientrati} rientrati`);
+  if (r.usciteSaltate)
+    console.warn(
+      `[import] ATTENZIONE: ${r.usciteSaltate} giocatori non compaiono nel file, troppi per un aggiornamento normale. ` +
+        'Nessuna uscita registrata: controlla di aver usato il listone completo.'
+    );
   for (const s of r.scartate) console.warn(`[import] SCARTATA riga ${s.riga}: ${s.motivo} -> ${JSON.stringify(s.dati)}`);
 
   const perRuolo = getDb().prepare('SELECT ruolo, count(*) AS n FROM players GROUP BY ruolo ORDER BY ruolo').all();

@@ -80,8 +80,11 @@ export default function App() {
               <span className="avviso">Listone non caricato</span>
             ) : (
               <>
-                {stato.giocatori.totale} giocatori ({stato.giocatori.perRuolo.P}P {stato.giocatori.perRuolo.D}D{' '}
+                {stato.giocatori.attivi} giocatori ({stato.giocatori.perRuolo.P}P {stato.giocatori.perRuolo.D}D{' '}
                 {stato.giocatori.perRuolo.C}C {stato.giocatori.perRuolo.A}A)
+                {stato.giocatori.nonPiuInListino > 0 && (
+                  <span className="muted"> &middot; {stato.giocatori.nonPiuInListino} non piu' in listino</span>
+                )}
               </>
             )}
           </dd>

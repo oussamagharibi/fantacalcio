@@ -11,7 +11,11 @@ CREATE TABLE IF NOT EXISTS players (
   note_generated_at TEXT,
   -- In fondo di proposito: ALTER TABLE ADD COLUMN accoda sempre, e cosi' un db
   -- creato da zero ha le stesse colonne nello stesso ordine di uno migrato.
-  quotazione_iniziale INTEGER
+  quotazione_iniziale INTEGER,
+  -- NULL = in listino. Altrimenti ISO timestamp del primo import che non lo
+  -- ha piu' trovato nel file. Non si cancella la riga: potrebbe essere gia'
+  -- stata acquistata, e purchases la referenzia.
+  assente_dal TEXT
 );
 
 CREATE TABLE IF NOT EXISTS teams (
