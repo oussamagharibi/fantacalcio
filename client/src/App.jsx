@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { getConfig, getStato } from './api.js';
 import Analisi from './Analisi.jsx';
 import Listone from './Listone.jsx';
+import Situazione from './Situazione.jsx';
 import Asta from './Asta.jsx';
 
 /** Routing sull'hash invece di una libreria: due pagine non giustificano una
  *  dipendenza, e l'hash sopravvive al refresh senza toccare il server. */
-const PAGINE = ['analisi', 'listone', 'asta'];
+const PAGINE = ['analisi', 'listone', 'situazione', 'asta'];
 const paginaDaHash = () => {
   const h = window.location.hash.replace('#/', '');
   return PAGINE.includes(h) ? h : 'analisi';
@@ -85,6 +86,7 @@ export default function App() {
       </nav>
       {pagina === 'asta' && <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} />}
       {pagina === 'listone' && <Listone stato={stato} />}
+      {pagina === 'situazione' && <Situazione stato={stato} />}
       {pagina === 'analisi' && <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />}
     </>
   );

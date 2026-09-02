@@ -1,0 +1,64 @@
+/** Stato di ogni giocatore nell'asta in corso, filtri e riepilogo. Fuori dal
+ *  componente perche' e' la parte che vale la pena verificare da sola. */
+
+import { ORDINE_RUOLI } from './squadre.js';
+
+const senzaAccenti = (s) =>
+  String(s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+export const STATI = [
+  { chiave: 'disponibile', etichetta: 'Disponibile' },
+  { chiave: 'me', etichetta: 'Preso da me' },
+  { chiave: 'uscito', etichetta: 'Uscito' },
+];
+
+/** Tre stati, non uno di piu'. "Uscito" non porta prezzo ne' squadra perche'
+ *  l'applicazione non li registra: quando un giocatore va a un altro
+ *  partecipante si preme un tasto solo. Inventare due colonne vuote sarebbe
+ *  peggio che ammettere che il dato non c'e'.
+ *  Un acquisto che non risulta nella mia rosa e' comunque fuori dall'asta:
+ *  vale "Uscito", che e' esattamente quello che se ne sa. */
+export function conStato(giocatori, presi) {
+  const miei = new Map(presi.map((p) => [p.player_id, p.prezzo]));
+  return giocatori
+    .filter((g) => !g.assente_dal)
+    .map((g) => {
+      if (miei.has(g.id)) return { ...g, stato: 'me', prezzo: miei.get(g.id) };
+      if (g.uscito || g.acquistato) return { ...g, stato: 'uscito', prezzo: null };
+      return { ...g, stato: 'disponibile', prezzo: null };
+    });
+}
+
+export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia = null, cerca = '' } = {}) {
+  const q = senzaAccenti(cerca).trim();
+  return righe
+    .filter((g) => !stato || g.stato === stato)
+    .filter((g) => !ruolo || g.ruolo === ruolo)
+    .filter((g) => !squadra || g.squadra === squadra)
+    .filter((g) => fascia === null || g.fascia === fascia)
+    .filter((g) => !q || senzaAccenti(g.nome).includes(q));
+}
+
+/** Quanto listone e' gia' andato, in totale e ruolo per ruolo. */
+export function riepilogo(righe) {
+  const vuoto = () => ({ disponibile: 0, me: 0, uscito: 0 });
+  const totali = vuoto();
+  const perRuolo = Object.fromEntries(ORDINE_RUOLI.map((r) => [r, vuoto()]));
+  for (const g of righe) {
+    totali[g.stato]++;
+    if (perRuolo[g.ruolo]) perRuolo[g.ruolo][g.stato]++;
+  }
+  const totale = righe.length;
+  const andati = totali.me + totali.uscito;
+  return {
+    totale,
+    ...totali,
+    andati,
+    percentualeAndata: totale > 0 ? Math.round((1000 * andati) / totale) / 10 : 0,
+    perRuolo,
+    spesa: righe.reduce((s, g) => s + (g.prezzo ?? 0), 0),
+  };
+}
