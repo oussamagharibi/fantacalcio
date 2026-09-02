@@ -1,16 +1,32 @@
 import { useEffect, useState } from 'react';
-import { getConfig } from './api.js';
+import { getConfig, getStato } from './api.js';
 import Setup from './Setup.jsx';
-import UploadListone from './UploadListone.jsx';
+import Analisi from './Analisi.jsx';
+import Asta from './Asta.jsx';
+
+/** Routing sull'hash invece di una libreria: due pagine non giustificano una
+ *  dipendenza, e l'hash sopravvive al refresh senza toccare il server. */
+const paginaDaHash = () => (window.location.hash.replace('#/', '') === 'asta' ? 'asta' : 'analisi');
 
 export default function App() {
+  const [config, setConfig] = useState(null);
   const [stato, setStato] = useState(null);
   const [errore, setErrore] = useState(null);
+  const [pagina, setPagina] = useState(paginaDaHash);
   const [modifica, setModifica] = useState(false);
 
+  useEffect(() => {
+    const cambio = () => setPagina(paginaDaHash());
+    window.addEventListener('hashchange', cambio);
+    return () => window.removeEventListener('hashchange', cambio);
+  }, []);
+
   const ricarica = () =>
-    getConfig()
-      .then(setStato)
+    Promise.all([getConfig(), getStato()])
+      .then(([c, s]) => {
+        setConfig(c);
+        setStato(s);
+      })
       .catch((e) => setErrore(e.message));
 
   useEffect(() => {
@@ -23,99 +39,57 @@ export default function App() {
         <p className="err">Server non raggiungibile: {errore}</p>
       </main>
     );
-
-  if (!stato)
+  if (!config || !stato)
     return (
       <main className="wrap">
         <p>Carico...</p>
       </main>
     );
 
-  if (!stato.configurata || modifica) {
+  if (!config.configurata || modifica)
     return (
       <Setup
-        iniziale={stato.config}
-        onSalvata={(s) => {
-          setStato(s);
+        iniziale={config.config}
+        onSalvata={(c) => {
+          setConfig(c);
           setModifica(false);
+          ricarica();
         }}
-        onAnnulla={stato.configurata ? () => setModifica(false) : null}
+        onAnnulla={config.configurata ? () => setModifica(false) : null}
       />
     );
-  }
 
-  const c = stato.config;
-  const slotTotali = c.slotP + c.slotD + c.slotC + c.slotA;
+  const vai = (p) => {
+    window.location.hash = `#/${p}`;
+    setPagina(p);
+  };
 
   return (
-    <main className="wrap">
-      <h1>Asta pronta</h1>
-      <p className="muted">Placeholder: la schermata di asta arriva agli step successivi.</p>
-
-      <dl className="riepilogo">
-        <div>
-          <dt>Budget</dt>
-          <dd>{c.budget}</dd>
-        </div>
-        <div>
-          <dt>Squadre</dt>
-          <dd>{c.numeroSquadre}</dd>
-        </div>
-        <div>
-          <dt>Rosa</dt>
-          <dd>
-            {c.slotP}P {c.slotD}D {c.slotC}C {c.slotA}A ({slotTotali} slot)
-          </dd>
-        </div>
-        <div>
-          <dt>La mia squadra</dt>
-          <dd>
-            <strong>{c.miaSquadra}</strong>
-          </dd>
-        </div>
-        <div>
-          <dt>Listone</dt>
-          <dd>
-            {stato.giocatori.totale === 0 ? (
-              <span className="avviso">Listone non caricato</span>
-            ) : (
-              <>
-                {stato.giocatori.attivi} giocatori ({stato.giocatori.perRuolo.P}P {stato.giocatori.perRuolo.D}D{' '}
-                {stato.giocatori.perRuolo.C}C {stato.giocatori.perRuolo.A}A)
-                {stato.giocatori.nonPiuInListino > 0 && (
-                  <span className="muted"> &middot; {stato.giocatori.nonPiuInListino} non piu' in listino</span>
-                )}
-              </>
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Acquisti registrati</dt>
-          <dd>{stato.acquisti}</dd>
-        </div>
-      </dl>
-
-      <ul className="squadre">
-        {c.nomiSquadre.map((n) => (
-          <li key={n} className={n === c.miaSquadra ? 'mia' : ''}>
-            {n}
-          </li>
-        ))}
-      </ul>
-
-      {stato.bloccata ? (
-        <p className="lock">
-          Configurazione bloccata: ci sono {stato.acquisti} acquisti. Si sblocca solo con un reset esplicito.
-        </p>
+    <>
+      <nav className="barra">
+        <strong className="marchio">Asta {config.config.miaSquadra}</strong>
+        <button className={pagina === 'analisi' ? 'tab attiva' : 'tab'} onClick={() => vai('analisi')}>
+          Analisi
+        </button>
+        <button className={pagina === 'asta' ? 'tab attiva' : 'tab'} onClick={() => vai('asta')}>
+          Asta
+        </button>
+        <span className="spazio" />
+        <span className="muted">
+          {stato.rosa.presi.length}/{Object.values(stato.rosa.slot).reduce((a, b) => a + b, 0)} slot &middot;{' '}
+          {stato.rosa.residuo} crediti
+        </span>
+        {!config.bloccata && (
+          <button className="tab" onClick={() => setModifica(true)}>
+            Configurazione
+          </button>
+        )}
+      </nav>
+      {pagina === 'asta' ? (
+        <Asta stato={stato} onStato={setStato} />
       ) : (
-        <button onClick={() => setModifica(true)}>Modifica configurazione</button>
+        <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />
       )}
-
-      {/* Fuori dal ramo bloccata/non bloccata: il listone si carica sempre, anche
-          a config bloccata, altrimenti a meta' asta non sarebbe piu' aggiornabile.
-          onImportato ricarica lo stato: il conteggio qui sopra sta a due righe di
-          distanza, lasciarlo fermo su "non caricato" sembrerebbe un errore. */}
-      <UploadListone onImportato={ricarica} />
-    </main>
+    </>
   );
 }

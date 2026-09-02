@@ -22,6 +22,7 @@ let db = null;
 const COLONNE_AGGIUNTE = [
   { tabella: 'players', colonna: 'quotazione_iniziale', definizione: 'INTEGER' },
   { tabella: 'players', colonna: 'assente_dal', definizione: 'TEXT' },
+  { tabella: 'articles', colonna: 'fonte', definizione: 'TEXT' },
 ];
 
 /** Applica gli ALTER mancanti. Non fallisce se la colonna c'e' gia': la

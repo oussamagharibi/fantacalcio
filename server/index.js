@@ -6,6 +6,8 @@ import fastifyMultipart from '@fastify/multipart';
 import { getDb, backup, DB_PATH, DATA_DIR, SU_VOLUME, ROOT } from './db.js';
 import { statoConfig, validaConfig, salvaConfig, bloccata, numeroAcquisti } from './lib/config.js';
 import { scaricaListone, salvaEImporta, ErroreDownload, ErroreListone } from './lib/listone.js';
+import { stato, registraAcquisto, registraUscita, annullaUltima, commutaTarget } from './lib/asta.js';
+import { avviaBatch, statoBatch } from './lib/batch.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
@@ -143,6 +145,56 @@ app.post('/api/listone/aggiorna', async (req, reply) => {
     throw e;
   }
 });
+
+/** Stato completo per le due pagine: giocatori con segnali e note, la mia rosa,
+ *  i contatori. Una chiamata sola, cosi' l'asta non fa mai richieste a raffica. */
+app.get('/api/stato', () => stato());
+
+app.post('/api/acquisti', (req, reply) => {
+  const playerId = Number(req.body?.playerId);
+  const prezzo = Number(req.body?.prezzo);
+  if (!Number.isInteger(playerId)) return reply.code(400).send({ error: 'playerId mancante o non intero' });
+  if (!Number.isInteger(prezzo) || prezzo < 0) return reply.code(400).send({ error: 'prezzo deve essere un intero >= 0' });
+  const r = registraAcquisto(playerId, prezzo);
+  if (!r.ok) return reply.code(409).send({ error: r.errore });
+  req.log.info({ playerId, prezzo }, 'acquisto registrato');
+  return { ...r, ...stato() };
+});
+
+/** Preso da altri: esce dalla lista, nessun prezzo e nessuna squadra registrati. */
+app.post('/api/usciti', (req, reply) => {
+  const playerId = Number(req.body?.playerId);
+  if (!Number.isInteger(playerId)) return reply.code(400).send({ error: 'playerId mancante o non intero' });
+  const r = registraUscita(playerId);
+  if (!r.ok) return reply.code(409).send({ error: r.errore });
+  return { ...r, ...stato() };
+});
+
+/** Ctrl+Z: toglie l'ultima riga scritta, acquisto o uscita che sia. */
+app.post('/api/annulla', (req, reply) => {
+  const r = annullaUltima();
+  if (!r.ok) return reply.code(409).send({ error: r.errore });
+  req.log.warn({ annullata: r.annullata }, 'azione annullata');
+  return { ...r, ...stato() };
+});
+
+app.post('/api/target', (req, reply) => {
+  const playerId = Number(req.body?.playerId);
+  if (!Number.isInteger(playerId)) return reply.code(400).send({ error: 'playerId mancante o non intero' });
+  const r = commutaTarget(playerId);
+  if (!r.ok) return reply.code(400).send({ error: r.errore });
+  return r;
+});
+
+/** Lancia il batch delle notizie. Da usare prima dell'asta: fa richieste di
+ *  rete lente e non deve girare mentre si sta battendo un giocatore. */
+app.post('/api/news/genera', (req, reply) => {
+  const r = avviaBatch({ conferma: req.body?.conferma === true });
+  if (!r.ok) return reply.code(409).send({ error: r.errore });
+  return r;
+});
+
+app.get('/api/news/stato', () => statoBatch());
 
 app.post('/api/reset', (req) => {
   const bak = backup('pre-reset');

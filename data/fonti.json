@@ -1,0 +1,57 @@
+[
+  {
+    "nome": "Fantacalcio probabili",
+    "attiva": true,
+    "tipo": "pagina",
+    "url": "https://www.fantacalcio.it/probabili-formazioni-serie-a"
+  },
+  {
+    "nome": "Fantacalcio infortunati",
+    "attiva": true,
+    "tipo": "pagina",
+    "url": "https://www.fantacalcio.it/infortunati-serie-a"
+  },
+  {
+    "nome": "Di Marzio",
+    "attiva": true,
+    "tipo": "rss",
+    "url": "https://www.gianlucadimarzio.com/rss",
+    "home": "https://www.gianlucadimarzio.com"
+  },
+  {
+    "nome": "Gazzetta Serie A",
+    "attiva": false,
+    "tipo": "rss",
+    "url": null
+  },
+  {
+    "nome": "Sky Sport calcio",
+    "attiva": false,
+    "tipo": "rss",
+    "url": null
+  },
+  {
+    "nome": "Sport Mediaset",
+    "attiva": false,
+    "tipo": "rss",
+    "url": null
+  },
+  {
+    "nome": "Corriere dello Sport",
+    "attiva": false,
+    "tipo": "rss",
+    "url": null
+  },
+  {
+    "nome": "TuttoMercatoWeb",
+    "attiva": false,
+    "tipo": "rss",
+    "url": null
+  },
+  {
+    "nome": "Fantacalcio rigoristi",
+    "attiva": true,
+    "tipo": "pagina",
+    "url": "https://www.fantacalcio.it/rigoristi-serie-a"
+  }
+]

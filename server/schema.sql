@@ -55,10 +55,37 @@ CREATE TABLE IF NOT EXISTS stats (
   PRIMARY KEY (player_id, stagione)
 );
 
+-- Giocatori marcati come obiettivo dalla pagina Analisi.
+CREATE TABLE IF NOT EXISTS targets (
+  player_id INTEGER PRIMARY KEY REFERENCES players(id),
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- "Preso da altri": esce dalla ricerca senza prezzo ne' squadra, perche' non
+-- li conosciamo. Tabella separata da purchases, che resta la MIA rosa.
+CREATE TABLE IF NOT EXISTS usciti (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  player_id INTEGER NOT NULL UNIQUE REFERENCES players(id),
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Segnali estratti dalle pagine-elenco di Fantacalcio.it da parser dedicati.
+-- Una fotografia, non uno storico: a ogni giro il tipo viene riscritto.
+CREATE TABLE IF NOT EXISTS segnali (
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  tipo TEXT NOT NULL,
+  testo TEXT,
+  fonte TEXT,
+  data TEXT,
+  PRIMARY KEY (player_id, tipo)
+);
+
 CREATE TABLE IF NOT EXISTS articles (
   url TEXT PRIMARY KEY,
   titolo TEXT,
   testo TEXT,
   data TEXT,
-  fetched_at TEXT
+  fetched_at TEXT,
+  -- nome della fonte in fonti.json: serve a citarla dentro la nota
+  fonte TEXT
 );

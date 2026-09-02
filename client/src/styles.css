@@ -54,3 +54,73 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .esito { border: 1px solid var(--acc); border-radius: 8px; padding: 12px; margin-top: 14px; }
 .esito p { margin: 0 0 6px; }
 .esito .squadre { margin: 10px 0 0; }
+
+/* ---------- navigazione a due pagine ---------- */
+.barra { display: flex; align-items: center; gap: 8px; padding: 10px 20px;
+  border-bottom: 1px solid var(--line); background: #171a22; position: sticky; top: 0; z-index: 5; }
+.marchio { margin-right: 8px; }
+.spazio { flex: 1; }
+.tab { background: transparent; color: var(--fg); border: 1px solid var(--line); padding: 6px 14px; font-weight: 500; }
+.tab.attiva { background: var(--acc); color: #08111e; border-color: var(--acc); font-weight: 600; }
+.wrap.largo { max-width: 1180px; }
+
+/* ---------- pagina analisi ---------- */
+.filtri { align-items: flex-end; }
+.filtri label { flex: 0 0 auto; }
+label.inline { flex-direction: row; align-items: center; gap: 6px; color: var(--fg); }
+label.inline input { flex: 0 0 auto; }
+.reparto { margin: 22px 0; }
+.reparto h2 { font-size: 17px; margin: 0 0 8px; }
+.tabella { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tabella th, .tabella td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tabella th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.tabella th.ordinabile { cursor: pointer; user-select: none; }
+.tabella th.ordinabile:hover { color: var(--fg); }
+.tabella td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabella tr.fuori { opacity: 0.4; text-decoration: line-through; }
+.stretta { width: 26px; }
+.stella { background: transparent; border: 0; color: var(--muted); font-size: 16px; padding: 0 2px; cursor: pointer; }
+.stella.attiva { color: #ffc857; }
+.segnali { display: flex; flex-wrap: wrap; gap: 4px; }
+.segnale { border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: 11px; white-space: nowrap; }
+.segnale.ko { border-color: var(--ko); color: var(--ko); }
+.segnale.ok { border-color: #3ea76a; color: #6bd39a; }
+.segnale.rig { border-color: #ffc857; color: #ffc857; }
+.nota { max-width: 320px; }
+.nota summary { cursor: pointer; color: var(--acc); }
+.nota pre { white-space: pre-wrap; font: inherit; margin: 6px 0; }
+.avanzamento { background: #10131a; border: 1px solid var(--line); border-radius: 6px; padding: 10px;
+  font-size: 12px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
+
+/* ---------- pagina asta ---------- */
+.asta .rosa { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.rosa-testata { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.rosa-testata h2 { font-size: 16px; margin: 0; }
+.contatori { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+.contatori strong { color: var(--fg); }
+.presi { list-style: none; padding: 0; margin: 10px 0 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px; font-size: 13px; }
+.ruolo { display: inline-block; min-width: 18px; text-align: center; border: 1px solid var(--line);
+  border-radius: 4px; font-size: 11px; margin-right: 4px; }
+.restanti { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 6px;
+  font-size: 13px; margin-bottom: 14px; }
+.campo-cerca { width: 100%; font-size: 20px; padding: 12px 14px; }
+.risultati { list-style: none; padding: 0; margin: 10px 0 0; }
+.risultati li { display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-bottom: 1px solid var(--line); cursor: pointer; }
+.risultati li:hover { background: #1b1e26; }
+kbd { border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; font-size: 12px; color: var(--muted); }
+.lotto { border: 2px solid var(--acc); border-radius: 10px; padding: 16px; }
+.lotto-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.lotto-testa h2 { margin: 0; font-size: 22px; }
+.massimo { text-align: right; line-height: 1.1; }
+.massimo strong { display: block; font-size: 46px; color: var(--acc); font-variant-numeric: tabular-nums; }
+.lotto-dati { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; font-size: 13px; color: var(--muted); }
+.lotto-dati strong { color: var(--fg); }
+.nota-lotto { border-left: 2px solid var(--line); padding-left: 10px; margin: 10px 0; font-size: 13px; }
+.nota-lotto pre { white-space: pre-wrap; font: inherit; margin: 0 0 4px; }
+.azioni-lotto { align-items: flex-end; margin-top: 8px; }
+.scorciatoie { margin-top: 18px; font-size: 12px; }
+.toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  background: #1b1e26; border: 1px solid var(--acc); border-radius: 8px; padding: 10px 18px; z-index: 20; }
+.toast.ko { border-color: var(--ko); color: var(--ko); }
