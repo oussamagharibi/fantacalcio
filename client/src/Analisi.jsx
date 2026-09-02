@@ -1,45 +1,99 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { postTarget, postGeneraAnalisi, getStatoAnalisi, getStato } from './api.js';
+import { RUOLI, ORDINE_RUOLI } from './squadre.js';
+import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
 
-const REPARTI = [
-  ['P', 'Portieri'],
-  ['D', 'Difensori'],
-  ['C', 'Centrocampisti'],
-  ['A', 'Attaccanti'],
-];
-
-const COLONNE = [
-  { chiave: 'nome', etichetta: 'Nome', testo: true },
-  { chiave: 'squadra', etichetta: 'Squadra', testo: true },
-  { chiave: 'quotazione', etichetta: 'Qt.A' },
-  { chiave: 'fvm', etichetta: 'FVM' },
-  { chiave: 'fascia', etichetta: 'Fascia' },
-];
-
-/** Etichetta breve per un segnale. Il testo lungo resta nel title, cosi' la
- *  riga non si allarga ma l'informazione completa e' a un passaggio di mouse. */
-function Segnale({ s }) {
-  if (s.tipo === 'infortunio') return <span className="segnale ko" title={s.testo}>infortunio</span>;
-  if (s.tipo === 'rigorista') return <span className="segnale rig" title={s.testo}>{s.testo.replace('rigorista ', 'rig ')}</span>;
+/** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
+ *  titolarita'. Il testo lungo resta nel title, la card non si allarga. */
+function ChipSegnale({ s }) {
+  if (s.tipo === 'infortunio') return <span className="chip inf" title={s.testo}>infortunio</span>;
+  if (s.tipo === 'rigorista') return <span className="chip rig" title={s.testo}>{s.testo.replace('rigorista ', 'rig ')}</span>;
   const perc = /(\d+)%/.exec(s.testo)?.[1];
   const titolare = s.testo.startsWith('titolare');
   return (
-    <span className={titolare ? 'segnale ok' : 'segnale'} title={s.testo}>
-      {perc ? `${perc}%` : titolare ? 'titolare' : 'panchina'}
+    <span className={titolare ? 'chip tit' : 'chip panca'} title={s.testo}>
+      {titolare ? `titolare ${perc ?? ''}%` : `panchina ${perc ?? ''}%`}
     </span>
   );
 }
 
+function CardGiocatore({ g, onStella }) {
+  const [aperta, setAperta] = useState(false);
+  const [pop, setPop] = useState(false);
+  const colore = RUOLI[g.ruolo]?.colore;
+
+  const stella = () => {
+    setPop(true);
+    setTimeout(() => setPop(false), 240);
+    onStella(g.id);
+  };
+
+  return (
+    <article className={`card-g${g.uscito || g.prezzoPagato !== null ? ' fuori' : ''}`} style={{ '--linea-ruolo': colore }}>
+      <button
+        className={`stella${g.target ? ' attiva' : ''}${pop ? ' pop' : ''}`}
+        onClick={stella}
+        title={g.target ? 'togli dagli obiettivi' : 'segna come obiettivo'}
+        aria-pressed={g.target}
+      >
+        {g.target ? '★' : '☆'}
+      </button>
+
+      <div className="card-testa">
+        <BadgeGiocatore nome={g.nome} ruolo={g.ruolo} />
+        <div style={{ minWidth: 0 }}>
+          <div className="card-nome">{g.nome}</div>
+          <div className="card-squadra">
+            <BadgeSquadra nome={g.squadra} size={15} titolo={false} /> {g.squadra}
+          </div>
+        </div>
+      </div>
+
+      <div className="card-numeri">
+        <div>
+          <span className="quota">{g.quotazione}</span> <span className="quota-eti">Qt.A</span>
+        </div>
+        <div className="muted">
+          FVM <strong style={{ color: 'var(--fg)' }}>{g.fvm ?? '-'}</strong>
+        </div>
+        <div className="spazio" />
+        <Fascia valore={g.fascia} ruolo={g.ruolo} />
+      </div>
+
+      {g.segnali.length > 0 && (
+        <div className="card-chip">
+          {g.segnali.map((s) => (
+            <ChipSegnale key={s.tipo} s={s} />
+          ))}
+        </div>
+      )}
+
+      {g.note && (
+        <>
+          <button className="nota-toggle" onClick={() => setAperta((a) => !a)}>
+            {aperta ? '▾ nascondi analisi AI' : '▸ analisi AI'}
+          </button>
+          {aperta && (
+            <div className="nota-corpo">
+              {g.note}
+              <span className="nota-data">generata il {new Date(g.note_generated_at).toLocaleString('it-IT')}</span>
+            </div>
+          )}
+        </>
+      )}
+    </article>
+  );
+}
+
 export default function Analisi({ stato, onStato, onRicarica }) {
-  const [ordine, setOrdine] = useState({ chiave: 'quotazione', crescente: false });
-  const [fascia, setFascia] = useState('');
+  const [reparto, setReparto] = useState('P');
+  const [fascia, setFascia] = useState(null);
   const [soloSegnali, setSoloSegnali] = useState(false);
   const [soloTarget, setSoloTarget] = useState(false);
   const [batch, setBatch] = useState({ inCorso: false, righe: [] });
   const timer = useRef(null);
 
-  // Avanzamento del batch: si interroga il server solo mentre gira.
   useEffect(() => {
     if (!batch.inCorso) return undefined;
     timer.current = setInterval(async () => {
@@ -60,128 +114,78 @@ export default function Analisi({ stato, onStato, onRicarica }) {
     setBatch({ inCorso: true, righe: ['avviato...'] });
   }
 
-  async function stella(id) {
+  const stella = async (id) => {
     await postTarget(id);
     onStato(await getStato());
-  }
+  };
 
-  const ordina = (chiave) =>
-    setOrdine((o) => ({ chiave, crescente: o.chiave === chiave ? !o.crescente : chiave === 'nome' || chiave === 'squadra' }));
+  const perReparto = useMemo(() => {
+    const m = Object.fromEntries(ORDINE_RUOLI.map((r) => [r, []]));
+    for (const g of stato.giocatori) m[g.ruolo]?.push(g);
+    return m;
+  }, [stato.giocatori]);
 
-  const filtrati = useMemo(() => {
-    const col = COLONNE.find((c) => c.chiave === ordine.chiave);
-    return stato.giocatori
-      .filter((g) => !fascia || String(g.fascia) === fascia)
-      .filter((g) => !soloSegnali || g.segnali.length > 0)
-      .filter((g) => !soloTarget || g.target)
-      .slice()
-      .sort((a, b) => {
-        const x = a[ordine.chiave] ?? (col?.testo ? '' : -1);
-        const y = b[ordine.chiave] ?? (col?.testo ? '' : -1);
-        const c = col?.testo ? String(x).localeCompare(String(y), 'it') : x - y;
-        return ordine.crescente ? c : -c;
-      });
-  }, [stato.giocatori, ordine, fascia, soloSegnali, soloTarget]);
+  const visibili = useMemo(
+    () =>
+      (perReparto[reparto] ?? [])
+        .filter((g) => fascia === null || g.fascia === fascia)
+        .filter((g) => !soloSegnali || g.segnali.length > 0)
+        .filter((g) => !soloTarget || g.target),
+    [perReparto, reparto, fascia, soloSegnali, soloTarget]
+  );
 
   return (
     <main className="wrap largo">
-      <div className="riga filtri">
-        <label>
-          Fascia
-          <select value={fascia} onChange={(e) => setFascia(e.target.value)}>
-            <option value="">tutte</option>
-            {[1, 2, 3, 4, 5].map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="inline">
-          <input type="checkbox" checked={soloSegnali} onChange={(e) => setSoloSegnali(e.target.checked)} /> solo con
-          segnali
-        </label>
-        <label className="inline">
-          <input type="checkbox" checked={soloTarget} onChange={(e) => setSoloTarget(e.target.checked)} /> solo target
-        </label>
+      {/* I reparti come tab: si cambia senza scorrere una pagina lunga. */}
+      <div className="tabs-reparto">
+        {ORDINE_RUOLI.map((r) => (
+          <button
+            key={r}
+            data-ruolo={r}
+            className={`tab-reparto${reparto === r ? ' attivo' : ''}`}
+            onClick={() => setReparto(r)}
+          >
+            <span className="punto" style={{ background: RUOLI[r].colore }} />
+            {RUOLI[r].nome}
+            <span className="muted">{perReparto[r]?.length ?? 0}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="filtri">
+        <span className="etichetta">Fascia</span>
+        <button className={`chip${fascia === null ? ' on' : ''}`} onClick={() => setFascia(null)}>
+          tutte
+        </button>
+        {[1, 2, 3, 4, 5].map((f) => (
+          <button key={f} className={`chip${fascia === f ? ' on' : ''}`} onClick={() => setFascia(fascia === f ? null : f)}>
+            {f}
+          </button>
+        ))}
+        <span style={{ width: 10 }} />
+        <button className={`chip${soloSegnali ? ' on' : ''}`} onClick={() => setSoloSegnali((v) => !v)}>
+          con segnali
+        </button>
+        <button className={`chip${soloTarget ? ' on' : ''}`} onClick={() => setSoloTarget((v) => !v)}>
+          ★ obiettivi
+        </button>
         <span className="spazio" />
-        <button onClick={genera} disabled={batch.inCorso}>
-          {batch.inCorso ? 'Analisi in corso...' : 'Genera analisi AI'}
+        <button className="bottone" onClick={genera} disabled={batch.inCorso}>
+          {batch.inCorso ? 'Analisi in corso…' : 'Genera analisi AI'}
         </button>
       </div>
 
-      {(batch.inCorso || batch.righe.length > 0) && (
-        <pre className="avanzamento">{batch.righe.slice(-12).join('\n')}</pre>
-      )}
+      {(batch.inCorso || batch.righe.length > 0) && <pre className="avanzamento">{batch.righe.slice(-12).join('\n')}</pre>}
 
-      {REPARTI.map(([ruolo, titolo]) => {
-        const righe = filtrati.filter((g) => g.ruolo === ruolo);
-        return (
-          <section key={ruolo} className="reparto">
-            <h2>
-              {titolo} <span className="muted">({righe.length})</span>
-            </h2>
-            {righe.length === 0 ? (
-              <p className="muted">Nessun giocatore con questi filtri.</p>
-            ) : (
-              <table className="tabella">
-                <thead>
-                  <tr>
-                    <th className="stretta"></th>
-                    {COLONNE.map((c) => (
-                      <th key={c.chiave} onClick={() => ordina(c.chiave)} className="ordinabile">
-                        {c.etichetta}
-                        {ordine.chiave === c.chiave ? (ordine.crescente ? ' ▲' : ' ▼') : ''}
-                      </th>
-                    ))}
-                    <th>Segnali</th>
-                    <th>Nota AI</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {righe.map((g) => (
-                    <tr key={g.id} className={g.uscito || g.prezzoPagato !== null ? 'fuori' : ''}>
-                      <td>
-                        <button
-                          className={g.target ? 'stella attiva' : 'stella'}
-                          onClick={() => stella(g.id)}
-                          title={g.target ? 'togli dagli obiettivi' : 'segna come obiettivo'}
-                        >
-                          {g.target ? '★' : '☆'}
-                        </button>
-                      </td>
-                      <td>{g.nome}</td>
-                      <td>{g.squadra}</td>
-                      <td className="num">{g.quotazione}</td>
-                      <td className="num">{g.fvm ?? '-'}</td>
-                      <td className="num">{g.fascia ?? '-'}</td>
-                      <td className="segnali">
-                        {g.segnali.map((s) => (
-                          <Segnale key={s.tipo} s={s} />
-                        ))}
-                      </td>
-                      <td className="nota">
-                        {g.note ? (
-                          <details>
-                            <summary>
-                              {g.note.split('\n')[0].slice(0, 60)}
-                              {g.note.split('\n')[0].length > 60 ? '…' : ''}
-                            </summary>
-                            <pre>{g.note}</pre>
-                            <span className="muted">generata il {new Date(g.note_generated_at).toLocaleString('it-IT')}</span>
-                          </details>
-                        ) : (
-                          <span className="muted">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-        );
-      })}
+      {visibili.length === 0 ? (
+        <p className="muted">Nessun giocatore con questi filtri.</p>
+      ) : (
+        <div className="griglia-card">
+          {visibili.map((g) => (
+            <CardGiocatore key={g.id} g={g} onStella={stella} />
+          ))}
+        </div>
+      )}
 
       <UploadListone />
     </main>

@@ -1,126 +1,263 @@
+/* Un solo font, quello di sistema: nessun CDN, quindi niente da caricare e
+   niente che possa fallire su Railway. La gerarchia la fanno i pesi. */
 :root {
   color-scheme: dark;
-  --bg: #12141a;
-  --fg: #e8eaf0;
+  --bg: #0d0f14;          /* pagina: il livello piu' scuro */
+  --card: #171a22;        /* card: un gradino sopra la pagina */
+  --card-alta: #1f2430;   /* hover e riquadri annidati */
+  --fg: #eef1f7;
   --muted: #8b90a0;
+  --line: #262b36;
   --acc: #4ea1ff;
-  --ko: #ff5f5f;
-  --line: #2a2e3a;
+  --ko: #ef5b5b;
+  --ok: #4caf7d;
+  --oro: #ffc857;
+  --P: #f2c14e;
+  --D: #4caf7d;
+  --C: #4ea1ff;
+  --A: #ef5b5b;
+  --r: 10px;
+  --veloce: 90ms;
+  --media: 130ms;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
-.wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px; }
-h1 { margin: 0 0 4px; font-size: 22px; }
-.muted { color: var(--muted); }
-
-label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); flex: 1; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+h1, h2, h3 { margin: 0; font-weight: 650; }
+button { font: inherit; cursor: pointer; border: 0; border-radius: 8px; }
 input, select {
-  background: #1b1e26; color: var(--fg); border: 1px solid var(--line);
-  border-radius: 6px; padding: 8px 10px; font: inherit;
+  background: #10131a; color: var(--fg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; font: inherit;
 }
 input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: 0; }
+.muted { color: var(--muted); }
+.err { color: var(--ko); }
+.avviso { color: var(--oro); }
+.spazio { flex: 1; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 22px 18px; }
+.wrap.largo { max-width: 1500px; }
 
+/* ---------------------------------------------------------- barra in alto */
+.barra {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; background: #12151c; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 20;
+}
+.marchio { font-weight: 700; letter-spacing: 0.2px; margin-right: 6px; }
+.tab {
+  background: transparent; color: var(--muted); padding: 7px 16px; font-weight: 600;
+  border: 1px solid transparent; transition: color var(--veloce), background var(--veloce);
+}
+.tab:hover { color: var(--fg); background: var(--card); }
+.tab.attiva { background: var(--card-alta); color: var(--fg); border-color: var(--line); }
+.stato-barra { display: flex; gap: 14px; font-size: 13px; color: var(--muted); }
+.stato-barra strong { color: var(--fg); }
+
+/* --------------------------------------------------------------- identita' */
+.badge-squadra {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-weight: 800; letter-spacing: 0.3px; flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.badge-giocatore {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 2px solid; font-weight: 700; flex: 0 0 auto;
+  background: #10131a;
+}
+.fascia-pallini { display: inline-flex; gap: 3px; align-items: center; }
+.fascia-pallini i { width: 6px; height: 6px; border-radius: 50%; background: #333a48; display: block; }
+
+/* ------------------------------------------------------------------- chip */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: 999px; padding: 4px 11px; font-size: 12px; font-weight: 600;
+  transition: background var(--veloce), color var(--veloce), border-color var(--veloce);
+}
+button.chip:hover { color: var(--fg); background: var(--card-alta); }
+.chip.on { background: var(--acc); border-color: var(--acc); color: #08111e; }
+.chip.inf { border-color: var(--ko); color: var(--ko); }
+.chip.rig { border-color: var(--acc); color: var(--acc); }
+.chip.tit { border-color: var(--ok); color: var(--ok); }
+.chip.panca { border-color: var(--line); color: var(--muted); }
+
+/* --------------------------------------------------------- pagina analisi */
+.tabs-reparto { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab-reparto {
+  background: var(--card); color: var(--muted); border: 1px solid var(--line);
+  padding: 9px 18px; font-weight: 650; display: flex; align-items: center; gap: 8px;
+  transition: color var(--veloce), border-color var(--veloce);
+}
+.tab-reparto:hover { color: var(--fg); }
+.tab-reparto .punto { width: 9px; height: 9px; border-radius: 50%; }
+.tab-reparto.attivo { color: var(--fg); background: var(--card-alta); }
+.tab-reparto.attivo[data-ruolo='P'] { border-color: var(--P); }
+.tab-reparto.attivo[data-ruolo='D'] { border-color: var(--D); }
+.tab-reparto.attivo[data-ruolo='C'] { border-color: var(--C); }
+.tab-reparto.attivo[data-ruolo='A'] { border-color: var(--A); }
+
+.filtri { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.filtri .etichetta { font-size: 12px; color: var(--muted); margin-right: 2px; }
+
+.griglia-card {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+.card-g {
+  position: relative; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 12px 13px;
+  border-left: 3px solid var(--linea-ruolo, var(--line));
+  transition: background var(--veloce), border-color var(--veloce);
+}
+.card-g:hover { background: var(--card-alta); }
+.card-g.fuori { opacity: 0.45; }
+.card-testa { display: flex; align-items: center; gap: 9px; padding-right: 26px; }
+.card-nome { font-weight: 650; line-height: 1.15; }
+.card-squadra { font-size: 12px; color: var(--muted); }
+.card-numeri { display: flex; align-items: baseline; gap: 12px; margin: 10px 0 8px; }
+.quota { font-size: 30px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
+.quota-eti { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+.card-chip { display: flex; gap: 5px; flex-wrap: wrap; }
+.stella {
+  position: absolute; top: 8px; right: 8px; background: transparent; color: #3d4453;
+  font-size: 17px; line-height: 1; padding: 2px; transition: color var(--veloce), transform var(--veloce);
+}
+.stella:hover { color: var(--oro); }
+.stella.attiva { color: var(--oro); }
+.stella.pop { animation: pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes pop { 0% { transform: scale(1); } 45% { transform: scale(1.5) rotate(12deg); } 100% { transform: scale(1); } }
+
+.nota-toggle {
+  margin-top: 9px; background: transparent; color: var(--acc); padding: 0;
+  font-size: 12px; font-weight: 600;
+}
+.nota-corpo {
+  margin-top: 8px; padding: 9px 10px; background: #10131a; border-radius: 8px;
+  border-left: 2px solid var(--acc); font-size: 13px; white-space: pre-wrap;
+}
+.nota-data { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
+.avanzamento {
+  background: #10131a; border: 1px solid var(--line); border-radius: var(--r);
+  padding: 10px 12px; font-size: 12px; max-height: 200px; overflow: auto;
+  white-space: pre-wrap; margin-bottom: 14px;
+}
+
+/* ------------------------------------------------------------ pagina asta */
+/* Tre zone fisse: durante l'asta non si scorre. Ogni zona scorre per conto suo
+   solo se il contenuto eccede, cosi' ricerca e lotto restano sempre al loro posto. */
+.asta-griglia {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr) 290px; gap: 14px;
+  height: calc(100vh - 52px); padding: 14px 18px; align-items: start;
+}
+.zona { background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 12px; height: 100%; overflow: auto; }
+.zona h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); margin-bottom: 10px; }
+
+.gruppo-slot { margin-bottom: 12px; }
+.gruppo-testa { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.gruppo-testa .punto { width: 8px; height: 8px; border-radius: 50%; }
+.slot {
+  display: flex; align-items: center; gap: 8px; min-height: 34px;
+  border-radius: 8px; padding: 4px 8px; margin-bottom: 4px; font-size: 13px;
+}
+.slot.vuoto { border: 1px dashed var(--colore-ruolo); opacity: 0.4; }
+.slot.pieno { background: var(--card-alta); border: 1px solid var(--line); }
+.slot .nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot .prezzo { font-weight: 700; font-variant-numeric: tabular-nums; }
+.slot.flash { animation: flash 420ms ease-out; }
+@keyframes flash {
+  0% { background: var(--colore-ruolo); color: #0d0f14; }
+  100% { background: var(--card-alta); color: var(--fg); }
+}
+
+.centro { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+.pannello { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.campo-cerca { width: 100%; font-size: 19px; padding: 13px 15px; }
+.risultati { list-style: none; padding: 0; margin: 10px 0 0; }
+.risultati li {
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 8px;
+  cursor: pointer; transition: background var(--veloce);
+}
+.risultati li:hover, .risultati li.evidenziato { background: var(--card-alta); }
+kbd {
+  border: 1px solid var(--line); background: #10131a; border-radius: 5px;
+  padding: 1px 7px; font-size: 12px; color: var(--muted); font-family: inherit;
+}
+
+.lotto { border: 1px solid var(--acc); animation: entra 100ms ease-out; }
+@keyframes entra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.lotto-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.lotto-nome { font-size: 25px; font-weight: 750; line-height: 1.1; }
+.massimo { text-align: right; line-height: 0.95; flex: 0 0 auto; }
+.massimo .eti { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+.massimo .n { display: block; font-size: 76px; font-weight: 800; color: var(--acc); font-variant-numeric: tabular-nums; }
+.lotto-dati { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0; font-size: 13px; color: var(--muted); }
+.lotto-dati strong { color: var(--fg); font-size: 16px; }
+.azioni { display: flex; gap: 9px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px; }
+.azioni input { width: 110px; font-size: 19px; text-align: right; }
+.bottone { background: var(--acc); color: #08111e; padding: 11px 18px; font-weight: 700;
+  transition: filter var(--veloce); }
+.bottone:hover { filter: brightness(1.1); }
+.bottone.neutro { background: var(--card-alta); color: var(--fg); border: 1px solid var(--line); }
+
+.barra-conta { margin-bottom: 12px; }
+.barra-conta .riga1 { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.barra-conta .traccia { height: 6px; background: #10131a; border-radius: 3px; overflow: hidden; }
+.barra-conta .riempi { height: 100%; border-radius: 3px; transition: width var(--media) linear; }
+.fasce-riga { display: flex; gap: 4px; margin-top: 5px; font-size: 11px; color: var(--muted); }
+.fasce-riga span { flex: 1; text-align: center; background: #10131a; border-radius: 4px; padding: 2px 0; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+  background: var(--card-alta); border: 1px solid var(--acc); border-radius: 10px;
+  padding: 11px 20px; z-index: 40; animation: entra 100ms ease-out; font-weight: 600;
+}
+.toast.ko { border-color: var(--ko); color: var(--ko); }
+.scorciatoie { font-size: 12px; color: var(--muted); text-align: center; }
+
+/* ------------------------------------------------------------- setup e form */
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); flex: 1; }
+label.inline { flex-direction: row; align-items: center; gap: 7px; color: var(--fg); flex: 0 0 auto; }
+label.inline input { flex: 0 0 auto; }
 .riga { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 0 0 14px; }
+fieldset { border: 1px solid var(--line); border-radius: var(--r); padding: 12px; margin: 0 0 14px; }
 legend { color: var(--muted); font-size: 13px; padding: 0 6px; }
 .griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-.azioni { display: flex; gap: 10px; margin-top: 18px; }
-
-button {
-  background: var(--acc); color: #08111e; border: 0; border-radius: 6px;
-  padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer;
-}
-button.secondario { background: transparent; color: var(--fg); border: 1px solid var(--line); }
-button:disabled { opacity: 0.6; cursor: default; }
-
-.err { color: var(--ko); }
+.azioni-form { display: flex; gap: 10px; margin-top: 18px; }
 .ko input, .ko select, fieldset.ko { border-color: var(--ko); }
-
 .riepilogo { display: grid; gap: 6px; margin: 16px 0; }
 .riepilogo div { display: flex; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .riepilogo dt { color: var(--muted); min-width: 170px; margin: 0; }
 .riepilogo dd { margin: 0; }
-
 .squadre { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .squadre li { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
 .squadre li.mia { border-color: var(--acc); color: var(--acc); }
-
-.lock, .avviso { color: #ffb454; }
-
-.listone { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 18px; }
-.listone h2 { font-size: 17px; margin: 0 0 4px; }
-.listone .riga { align-items: flex-end; margin-top: 14px; }
+.lock { color: var(--oro); }
+.listone { border-top: 1px solid var(--line); margin-top: 26px; padding-top: 16px; }
+.listone h2 { font-size: 16px; margin-bottom: 4px; }
 input[type='file'] { padding: 6px; cursor: pointer; }
-.esito { border: 1px solid var(--acc); border-radius: 8px; padding: 12px; margin-top: 14px; }
+.esito { border: 1px solid var(--acc); border-radius: var(--r); padding: 12px; margin-top: 14px; }
 .esito p { margin: 0 0 6px; }
-.esito .squadre { margin: 10px 0 0; }
 
-/* ---------- navigazione a due pagine ---------- */
-.barra { display: flex; align-items: center; gap: 8px; padding: 10px 20px;
-  border-bottom: 1px solid var(--line); background: #171a22; position: sticky; top: 0; z-index: 5; }
-.marchio { margin-right: 8px; }
-.spazio { flex: 1; }
-.tab { background: transparent; color: var(--fg); border: 1px solid var(--line); padding: 6px 14px; font-weight: 500; }
-.tab.attiva { background: var(--acc); color: #08111e; border-color: var(--acc); font-weight: 600; }
-.wrap.largo { max-width: 1180px; }
-
-/* ---------- pagina analisi ---------- */
-.filtri { align-items: flex-end; }
-.filtri label { flex: 0 0 auto; }
-label.inline { flex-direction: row; align-items: center; gap: 6px; color: var(--fg); }
-label.inline input { flex: 0 0 auto; }
-.reparto { margin: 22px 0; }
-.reparto h2 { font-size: 17px; margin: 0 0 8px; }
-.tabella { width: 100%; border-collapse: collapse; font-size: 13px; }
-.tabella th, .tabella td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.tabella th { color: var(--muted); font-weight: 500; white-space: nowrap; }
-.tabella th.ordinabile { cursor: pointer; user-select: none; }
-.tabella th.ordinabile:hover { color: var(--fg); }
-.tabella td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.tabella tr.fuori { opacity: 0.4; text-decoration: line-through; }
-.stretta { width: 26px; }
-.stella { background: transparent; border: 0; color: var(--muted); font-size: 16px; padding: 0 2px; cursor: pointer; }
-.stella.attiva { color: #ffc857; }
-.segnali { display: flex; flex-wrap: wrap; gap: 4px; }
-.segnale { border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: 11px; white-space: nowrap; }
-.segnale.ko { border-color: var(--ko); color: var(--ko); }
-.segnale.ok { border-color: #3ea76a; color: #6bd39a; }
-.segnale.rig { border-color: #ffc857; color: #ffc857; }
-.nota { max-width: 320px; }
-.nota summary { cursor: pointer; color: var(--acc); }
-.nota pre { white-space: pre-wrap; font: inherit; margin: 6px 0; }
-.avanzamento { background: #10131a; border: 1px solid var(--line); border-radius: 6px; padding: 10px;
-  font-size: 12px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
-
-/* ---------- pagina asta ---------- */
-.asta .rosa { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-.rosa-testata { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-.rosa-testata h2 { font-size: 16px; margin: 0; }
-.contatori { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
-.contatori strong { color: var(--fg); }
-.presi { list-style: none; padding: 0; margin: 10px 0 0; display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px; font-size: 13px; }
-.ruolo { display: inline-block; min-width: 18px; text-align: center; border: 1px solid var(--line);
-  border-radius: 4px; font-size: 11px; margin-right: 4px; }
-.restanti { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 6px;
-  font-size: 13px; margin-bottom: 14px; }
-.campo-cerca { width: 100%; font-size: 20px; padding: 12px 14px; }
-.risultati { list-style: none; padding: 0; margin: 10px 0 0; }
-.risultati li { display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-  border-bottom: 1px solid var(--line); cursor: pointer; }
-.risultati li:hover { background: #1b1e26; }
-kbd { border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; font-size: 12px; color: var(--muted); }
-.lotto { border: 2px solid var(--acc); border-radius: 10px; padding: 16px; }
-.lotto-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.lotto-testa h2 { margin: 0; font-size: 22px; }
-.massimo { text-align: right; line-height: 1.1; }
-.massimo strong { display: block; font-size: 46px; color: var(--acc); font-variant-numeric: tabular-nums; }
-.lotto-dati { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; font-size: 13px; color: var(--muted); }
-.lotto-dati strong { color: var(--fg); }
-.nota-lotto { border-left: 2px solid var(--line); padding-left: 10px; margin: 10px 0; font-size: 13px; }
-.nota-lotto pre { white-space: pre-wrap; font: inherit; margin: 0 0 4px; }
-.azioni-lotto { align-items: flex-end; margin-top: 8px; }
-.scorciatoie { margin-top: 18px; font-size: 12px; }
-.toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
-  background: #1b1e26; border: 1px solid var(--acc); border-radius: 8px; padding: 10px 18px; z-index: 20; }
-.toast.ko { border-color: var(--ko); color: var(--ko); }
+/* ------------------------------------------------------------- responsive */
+/* Sotto i 900px le tre zone si impilano, con ricerca e lotto SEMPRE in cima:
+   durante l'asta e' l'unica cosa che deve stare sotto le dita. */
+@media (max-width: 1400px) {
+  .asta-griglia { grid-template-columns: 260px minmax(0, 1fr) 250px; gap: 12px; }
+  .massimo .n { font-size: 64px; }
+}
+@media (max-width: 900px) {
+  .asta-griglia { grid-template-columns: 1fr; height: auto; padding: 12px; }
+  .zona { height: auto; max-height: 340px; }
+  .centro { order: -1; }
+  .massimo .n { font-size: 58px; }
+  .lotto-testa { flex-wrap: wrap; }
+}
+@media (max-width: 620px) {
+  .barra { flex-wrap: wrap; }
+  .griglia-card { grid-template-columns: 1fr; }
+}

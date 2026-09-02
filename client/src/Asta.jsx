@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { postAcquisto, postUscita, postAnnulla } from './api.js';
+import { RUOLI, ORDINE_RUOLI } from './squadre.js';
+import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 
-const RUOLI = [
-  ['P', 'Portieri'],
-  ['D', 'Difensori'],
-  ['C', 'Centrocampisti'],
-  ['A', 'Attaccanti'],
-];
 const MIN_LETTERE = 3;
 const MAX_RISULTATI = 9;
 
@@ -16,19 +12,29 @@ const senzaAccenti = (s) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 
+function ChipSegnale({ s }) {
+  if (s.tipo === 'infortunio') return <span className="chip inf" title={s.testo}>infortunio</span>;
+  if (s.tipo === 'rigorista') return <span className="chip rig" title={s.testo}>{s.testo.replace('rigorista ', 'rig ')}</span>;
+  const perc = /(\d+)%/.exec(s.testo)?.[1];
+  const titolare = s.testo.startsWith('titolare');
+  return <span className={titolare ? 'chip tit' : 'chip panca'} title={s.testo}>{titolare ? `titolare ${perc ?? ''}%` : `panchina ${perc ?? ''}%`}</span>;
+}
+
 export default function Asta({ stato, onStato }) {
   const [cerca, setCerca] = useState('');
   /** Il lotto in corso vive solo qui: non e' un dato dell'asta finche' non si
-   *  decide, e persisterlo significherebbe doverlo anche ripulire. */
+   *  decide, e persisterlo vorrebbe dire doverlo anche ripulire. */
   const [lotto, setLotto] = useState(null);
   const [prezzo, setPrezzo] = useState('');
   const [toast, setToast] = useState(null);
+  /** Serve solo al flash dello slot appena riempito: feedback, non stato. */
+  const [appenaPreso, setAppenaPreso] = useState(null);
   const campo = useRef(null);
   const campoPrezzo = useRef(null);
 
   const avvisa = (testo, tipo = 'ok') => {
     setToast({ testo, tipo });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 3500);
   };
   const tornaAllaRicerca = () => {
     setLotto(null);
@@ -50,10 +56,14 @@ export default function Asta({ stato, onStato }) {
       .slice(0, MAX_RISULTATI);
   }, [cerca, disponibili]);
 
-  async function agisci(fn, descrizione) {
+  async function agisci(fn, descrizione, idFlash) {
     try {
       const r = await fn();
       onStato({ giocatori: r.giocatori, rosa: r.rosa, restanti: r.restanti });
+      if (idFlash) {
+        setAppenaPreso(idFlash);
+        setTimeout(() => setAppenaPreso(null), 500);
+      }
       avvisa(descrizione(r));
       tornaAllaRicerca();
     } catch (e) {
@@ -63,8 +73,8 @@ export default function Asta({ stato, onStato }) {
 
   const presoDaMe = () => {
     const p = Number(prezzo);
-    if (!Number.isInteger(p) || p < 0) return avvisa('prezzo non valido', 'ko');
-    agisci(() => postAcquisto(lotto.id, p), () => `${lotto.nome} preso a ${p}`);
+    if (prezzo === '' || !Number.isInteger(p) || p < 0) return avvisa('prezzo non valido', 'ko');
+    agisci(() => postAcquisto(lotto.id, p), () => `${lotto.nome} preso a ${p}`, lotto.id);
   };
   const presoDaAltri = () => agisci(() => postUscita(lotto.id), () => `${lotto.nome} preso da altri`);
   const annulla = () =>
@@ -72,8 +82,8 @@ export default function Asta({ stato, onStato }) {
       () => postAnnulla(),
       (r) =>
         r.annullata.tipo === 'acquisto'
-          ? `annullato: ${r.annullata.nome} a ${r.annullata.prezzo} crediti, tornato in lista`
-          : `annullato: ${r.annullata.nome} e' tornato in lista`
+          ? `annullato: ${r.annullata.nome} a ${r.annullata.prezzo}, torna in lista`
+          : `annullato: ${r.annullata.nome} torna in lista`
     );
 
   const apri = (g) => {
@@ -81,8 +91,7 @@ export default function Asta({ stato, onStato }) {
     setPrezzo('');
   };
 
-  // Tastiera globale: Ctrl+Z ovunque, Esc chiude il lotto, i numeri scelgono
-  // dai risultati. Il mouse non serve mai.
+  // Tastiera globale: l'asta si conduce senza mouse.
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -120,154 +129,200 @@ export default function Asta({ stato, onStato }) {
   }, [lotto]);
 
   const r = stato.rosa;
-  const perRuoloFascia = (ruolo, fascia) =>
-    stato.restanti.filter((x) => x.ruolo === ruolo && (fascia === null || x.fascia === fascia)).reduce((s, x) => s + x.n, 0);
+  const totalePerRuolo = (ruolo) => stato.restanti.filter((x) => x.ruolo === ruolo).reduce((s, x) => s + x.n, 0);
+  const perFascia = (ruolo, f) => stato.restanti.filter((x) => x.ruolo === ruolo && x.fascia === f).reduce((s, x) => s + x.n, 0);
+  const massimoRuolo = Math.max(1, ...ORDINE_RUOLI.map(totalePerRuolo));
 
   return (
-    <main className="wrap largo asta">
-      <section className="rosa">
-        <div className="rosa-testata">
-          <h2>La mia rosa &mdash; {r.squadra}</h2>
-          <div className="contatori">
-            <span>
-              residuo <strong>{r.residuo}</strong>/{r.budget}
-            </span>
-            <span>
-              slot liberi <strong>{r.slotLiberi}</strong>
-            </span>
-            {RUOLI.map(([k]) => (
-              <span key={k}>
-                {k} <strong>{r.presiPerRuolo[k]}</strong>/{r.slot[k]}
-              </span>
-            ))}
+    <div className="asta-griglia">
+      {/* ------------------------------------------------ sinistra: la rosa */}
+      <aside className="zona">
+        <h3>La mia rosa &mdash; {r.squadra}</h3>
+        {ORDINE_RUOLI.map((ruolo) => {
+          const presi = r.presi.filter((p) => p.ruolo === ruolo);
+          const posti = Array.from({ length: r.slot[ruolo] ?? 0 }, (_, i) => presi[i] ?? null);
+          return (
+            <div className="gruppo-slot" key={ruolo}>
+              <div className="gruppo-testa">
+                <span className="punto" style={{ background: RUOLI[ruolo].colore }} />
+                {RUOLI[ruolo].nome}
+                <span className="spazio" />
+                {presi.length}/{r.slot[ruolo] ?? 0}
+              </div>
+              {posti.map((p, i) => (
+                <div
+                  key={p ? p.id : `vuoto-${i}`}
+                  className={`slot ${p ? 'pieno' : 'vuoto'}${p && p.player_id === appenaPreso ? ' flash' : ''}`}
+                  style={{ '--colore-ruolo': RUOLI[ruolo].colore }}
+                >
+                  {p ? (
+                    <>
+                      <BadgeSquadra nome={p.squadra} size={22} />
+                      <span className="nome">{p.nome}</span>
+                      <span className="prezzo">{p.prezzo}</span>
+                    </>
+                  ) : (
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      libero
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </aside>
+
+      {/* -------------------------------------------- centro: ricerca e lotto */}
+      <section className="centro">
+        {!lotto ? (
+          <div className="pannello">
+            <input
+              ref={campo}
+              className="campo-cerca"
+              value={cerca}
+              onChange={(e) => setCerca(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && risultati[0]) apri(risultati[0]);
+              }}
+              placeholder={`Cerca (${MIN_LETTERE} lettere) · 1-9 per scegliere · Invio per il primo`}
+              autoFocus
+            />
+            {cerca.trim().length >= MIN_LETTERE && risultati.length === 0 && (
+              <p className="muted" style={{ marginTop: 10 }}>
+                Nessun giocatore disponibile con questo nome.
+              </p>
+            )}
+            <ol className="risultati">
+              {risultati.map((g, i) => (
+                <li key={g.id} className={i === 0 ? 'evidenziato' : ''} onClick={() => apri(g)}>
+                  <kbd>{i + 1}</kbd>
+                  <BadgeGiocatore nome={g.nome} ruolo={g.ruolo} size={26} />
+                  <strong style={{ flex: 1 }}>{g.nome}</strong>
+                  <BadgeSquadra nome={g.squadra} size={20} />
+                  <Fascia valore={g.fascia} ruolo={g.ruolo} />
+                  <span className="muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    Qt {g.quotazione}
+                  </span>
+                  {g.target && <span style={{ color: 'var(--oro)' }}>★</span>}
+                </li>
+              ))}
+            </ol>
           </div>
-        </div>
-        {r.presi.length === 0 ? (
-          <p className="muted">Nessun acquisto registrato.</p>
         ) : (
-          <ul className="presi">
-            {r.presi.map((p) => (
-              <li key={p.id}>
-                <span className="ruolo">{p.ruolo}</span> {p.nome} <span className="muted">{p.squadra}</span>{' '}
-                <strong>{p.prezzo}</strong>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          <div className="pannello lotto">
+            <div className="lotto-testa">
+              <div style={{ minWidth: 0 }}>
+                <div className="lotto-nome">
+                  {lotto.nome} {lotto.target && <span style={{ color: 'var(--oro)' }}>★</span>}
+                </div>
+                <div className="riga" style={{ margin: '8px 0 0', alignItems: 'center', gap: 8 }}>
+                  <BadgeSquadra nome={lotto.squadra} size={26} />
+                  <span className="muted">{lotto.squadra}</span>
+                  <span className="chip" style={{ borderColor: RUOLI[lotto.ruolo].colore, color: RUOLI[lotto.ruolo].colore }}>
+                    {RUOLI[lotto.ruolo].nome.slice(0, -1)}
+                  </span>
+                  <Fascia valore={lotto.fascia} ruolo={lotto.ruolo} />
+                </div>
+              </div>
+              <div className="massimo">
+                <span className="eti">massimo sostenibile</span>
+                <span className="n">{r.massimoSostenibile}</span>
+              </div>
+            </div>
 
-      <section className="restanti">
-        {RUOLI.map(([k, etichetta]) => (
-          <div key={k}>
-            <strong>{etichetta}</strong>: {perRuoloFascia(k, null)} disponibili
-            <span className="muted">
-              {' '}
-              ({[1, 2, 3, 4, 5].map((f) => `f${f}:${perRuoloFascia(k, f)}`).join('  ')})
-            </span>
+            <div className="lotto-dati">
+              <span>
+                Qt.A <strong>{lotto.quotazione}</strong>
+              </span>
+              <span>
+                FVM <strong>{lotto.fvm ?? '-'}</strong>
+              </span>
+              <span>
+                residuo <strong>{r.residuo}</strong>
+              </span>
+              <span>
+                slot liberi <strong>{r.slotLiberi}</strong>
+              </span>
+            </div>
+
+            {lotto.segnali.length > 0 && (
+              <div className="card-chip">
+                {lotto.segnali.map((s) => (
+                  <ChipSegnale key={s.tipo} s={s} />
+                ))}
+              </div>
+            )}
+
+            {lotto.note && (
+              <div className="nota-corpo" style={{ marginTop: 10 }}>
+                {lotto.note}
+                <span className="nota-data">generata il {new Date(lotto.note_generated_at).toLocaleString('it-IT')}</span>
+              </div>
+            )}
+
+            <div className="azioni">
+              <label style={{ flex: '0 0 auto' }}>
+                Prezzo
+                <input
+                  ref={campoPrezzo}
+                  inputMode="numeric"
+                  value={prezzo}
+                  onChange={(e) => setPrezzo(e.target.value.replace(/[^0-9]/g, ''))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') presoDaMe();
+                  }}
+                  placeholder="0"
+                />
+              </label>
+              <button className="bottone" onClick={presoDaMe}>
+                Preso da me <kbd>Invio</kbd>
+              </button>
+              <button className="bottone neutro" onClick={presoDaAltri}>
+                Preso da altri <kbd>A</kbd>
+              </button>
+              <button className="bottone neutro" onClick={tornaAllaRicerca}>
+                Chiudi <kbd>Esc</kbd>
+              </button>
+            </div>
           </div>
-        ))}
+        )}
+        <p className="scorciatoie">
+          <kbd>Ctrl+Z</kbd> annulla l'ultima azione &middot; <kbd>Esc</kbd> chiude il lotto &middot; <kbd>1</kbd>-
+          <kbd>9</kbd> scelgono dai risultati
+        </p>
       </section>
 
-      {!lotto && (
-        <section className="ricerca">
-          <input
-            ref={campo}
-            className="campo-cerca"
-            value={cerca}
-            onChange={(e) => setCerca(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && risultati[0]) apri(risultati[0]);
-            }}
-            placeholder={`Cerca un giocatore (almeno ${MIN_LETTERE} lettere), 1-9 per scegliere, Invio per il primo`}
-            autoFocus
-          />
-          {cerca.trim().length >= MIN_LETTERE && risultati.length === 0 && (
-            <p className="muted">Nessun giocatore disponibile con questo nome.</p>
-          )}
-          <ol className="risultati">
-            {risultati.map((g, i) => (
-              <li key={g.id} onClick={() => apri(g)}>
-                <kbd>{i + 1}</kbd> <strong>{g.nome}</strong> <span className="muted">{g.squadra}</span>
-                <span className="ruolo">{g.ruolo}</span>
-                <span className="muted">
-                  Qt {g.quotazione} &middot; f{g.fascia}
+      {/* ------------------------------------------- destra: quanti ne restano */}
+      <aside className="zona">
+        <h3>Ancora disponibili</h3>
+        {ORDINE_RUOLI.map((ruolo) => {
+          const n = totalePerRuolo(ruolo);
+          return (
+            <div className="barra-conta" key={ruolo}>
+              <div className="riga1">
+                <span>
+                  <span className="punto" style={{ background: RUOLI[ruolo].colore, display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginRight: 6 }} />
+                  {RUOLI[ruolo].nome}
                 </span>
-                {g.target && <span className="stella attiva">★</span>}
-                {g.segnali.map((s) => (
-                  <span key={s.tipo} className="segnale" title={s.testo}>
-                    {s.tipo === 'infortunio' ? 'inf' : s.tipo === 'rigorista' ? 'rig' : /(\d+)%/.exec(s.testo)?.[1] + '%'}
+                <strong>{n}</strong>
+              </div>
+              <div className="traccia">
+                <div className="riempi" style={{ width: `${(100 * n) / massimoRuolo}%`, background: RUOLI[ruolo].colore }} />
+              </div>
+              <div className="fasce-riga">
+                {[1, 2, 3, 4, 5].map((f) => (
+                  <span key={f} title={`fascia ${f}`}>
+                    f{f} {perFascia(ruolo, f)}
                   </span>
                 ))}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {lotto && (
-        <section className="lotto">
-          <div className="lotto-testa">
-            <h2>
-              {lotto.nome} <span className="ruolo">{lotto.ruolo}</span> <span className="muted">{lotto.squadra}</span>
-              {lotto.target && <span className="stella attiva">★</span>}
-            </h2>
-            <div className="massimo">
-              <span className="muted">massimo sostenibile</span>
-              <strong>{r.massimoSostenibile}</strong>
+              </div>
             </div>
-          </div>
-          <div className="lotto-dati">
-            <span>
-              Qt.A <strong>{lotto.quotazione}</strong>
-            </span>
-            <span>
-              FVM <strong>{lotto.fvm ?? '-'}</strong>
-            </span>
-            <span>
-              fascia <strong>{lotto.fascia ?? '-'}</strong>
-            </span>
-            {lotto.segnali.map((s) => (
-              <span key={s.tipo} className="segnale" title={s.testo}>
-                {s.tipo}: {s.testo.slice(0, 60)}
-              </span>
-            ))}
-          </div>
-          {lotto.note && (
-            <div className="nota-lotto">
-              <pre>{lotto.note}</pre>
-              <span className="muted">generata il {new Date(lotto.note_generated_at).toLocaleString('it-IT')}</span>
-            </div>
-          )}
-          <div className="riga azioni-lotto">
-            <label>
-              Prezzo pagato
-              <input
-                ref={campoPrezzo}
-                inputMode="numeric"
-                value={prezzo}
-                onChange={(e) => setPrezzo(e.target.value.replace(/[^0-9]/g, ''))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') presoDaMe();
-                }}
-                placeholder="poi Invio"
-              />
-            </label>
-            <button onClick={presoDaMe}>Preso da me (Invio)</button>
-            <button className="secondario" onClick={presoDaAltri}>
-              Preso da altri (A)
-            </button>
-            <button className="secondario" onClick={tornaAllaRicerca}>
-              Chiudi (Esc)
-            </button>
-          </div>
-        </section>
-      )}
-
-      <p className="muted scorciatoie">
-        Ctrl+Z annulla l'ultima azione &middot; Esc chiude il lotto &middot; 1-9 scelgono dai risultati
-      </p>
+          );
+        })}
+      </aside>
 
       {toast && <div className={`toast ${toast.tipo}`}>{toast.testo}</div>}
-    </main>
+    </div>
   );
 }

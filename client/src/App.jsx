@@ -42,7 +42,7 @@ export default function App() {
   if (!config || !stato)
     return (
       <main className="wrap">
-        <p>Carico...</p>
+        <p className="muted">Carico…</p>
       </main>
     );
 
@@ -63,11 +63,12 @@ export default function App() {
     window.location.hash = `#/${p}`;
     setPagina(p);
   };
+  const slotTotali = Object.values(stato.rosa.slot).reduce((a, b) => a + b, 0);
 
   return (
     <>
       <nav className="barra">
-        <strong className="marchio">Asta {config.config.miaSquadra}</strong>
+        <span className="marchio">{config.config.miaSquadra}</span>
         <button className={pagina === 'analisi' ? 'tab attiva' : 'tab'} onClick={() => vai('analisi')}>
           Analisi
         </button>
@@ -75,9 +76,16 @@ export default function App() {
           Asta
         </button>
         <span className="spazio" />
-        <span className="muted">
-          {stato.rosa.presi.length}/{Object.values(stato.rosa.slot).reduce((a, b) => a + b, 0)} slot &middot;{' '}
-          {stato.rosa.residuo} crediti
+        <span className="stato-barra">
+          <span>
+            rosa <strong>{stato.rosa.presi.length}</strong>/{slotTotali}
+          </span>
+          <span>
+            crediti <strong>{stato.rosa.residuo}</strong>
+          </span>
+          <span>
+            max <strong>{stato.rosa.massimoSostenibile}</strong>
+          </span>
         </span>
         {!config.bloccata && (
           <button className="tab" onClick={() => setModifica(true)}>
