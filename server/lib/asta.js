@@ -1,6 +1,7 @@
 import { getDb, tx } from '../db.js';
 import { leggiConfig } from './config.js';
 import { carrierePerGiocatore } from './wiki.js';
+import { xgPerGiocatore } from './understat.js';
 import { datiCaricamento } from './listone.js';
 
 /** Stato operativo dell'asta: chi e' ancora disponibile, la mia rosa, il
@@ -28,6 +29,8 @@ export function giocatori() {
   // richiesta: durante l'asta non si fanno chiamate di rete oltre alle
   // scritture, quindi quando si apre un lotto il dato deve essere gia' qui.
   const carriere = carrierePerGiocatore(5);
+  // Stessa ragione per gli expected goals: sono gia' qui quando si apre un lotto.
+  const xg = xgPerGiocatore();
   return getDb()
     .prepare(
       `SELECT p.id, p.nome, p.squadra, p.ruolo, p.quotazione, p.quotazione_iniziale, p.fvm,
@@ -50,6 +53,7 @@ export function giocatori() {
       uscito: !!r.uscito,
       acquistato: !!r.acquistato,
       carriera: carriere.get(r.id) ?? [],
+      xg: xg.get(r.id) ?? null,
       segnali: (r.segnali ?? '')
         .split(SEP_VOCE)
         .filter(Boolean)

@@ -111,3 +111,28 @@ CREATE TABLE IF NOT EXISTS articles (
   -- nome della fonte in fonti.json: serve a citarla dentro la nota
   fonte TEXT
 );
+
+-- Expected goals da Understat. Dati REALI di calcio, non di fantacalcio: xG e'
+-- la qualita' delle occasioni avute, non un punteggio. Sta separata da stats
+-- (Excel di fantacalcio.it) e da carriera (Wikipedia) perche' e' una terza
+-- fonte con un suo abbinamento e un suo giro di aggiornamento.
+-- scarto_xg (gol - xg) NON si salva: si calcola nelle query, cosi' non puo'
+-- restare indietro rispetto alle colonne da cui deriva.
+CREATE TABLE IF NOT EXISTS xg (
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  stagione TEXT NOT NULL,
+  squadra TEXT,
+  partite INTEGER,
+  minuti INTEGER,
+  gol INTEGER,
+  xg REAL,
+  assist INTEGER,
+  xa REAL,
+  tiri INTEGER,
+  passaggi_chiave INTEGER,
+  npg INTEGER,
+  npxg REAL,
+  nome_fonte TEXT,
+  aggiornato_il TEXT,
+  PRIMARY KEY (player_id, stagione)
+);

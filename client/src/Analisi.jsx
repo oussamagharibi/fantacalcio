@@ -4,6 +4,7 @@ import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
 import Carriera from './Carriera.jsx';
+import Xg from './Xg.jsx';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
  *  titolarita'. Il testo lungo resta nel title, la card non si allarga. */
@@ -70,6 +71,7 @@ function CardGiocatore({ g, onStella }) {
         </div>
       )}
 
+      <Xg dati={g.xg} compatto />
       <Carriera righe={g.carriera} ruolo={g.ruolo} />
 
       {g.note && (

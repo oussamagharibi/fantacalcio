@@ -1,6 +1,9 @@
 import { getDb, tx } from '../db.js';
 
-export const CHIAVI = ['budget', 'numeroSquadre', 'slotP', 'slotD', 'slotC', 'slotA', 'nomiSquadre', 'miaSquadra'];
+/** L'applicazione tiene solo la MIA rosa: gli altri partecipanti non servono
+ *  a nulla, quindi non si chiedono. numeroSquadre e nomiSquadre non fanno piu'
+ *  parte della configurazione; se restano in un db vecchio, vengono ignorate. */
+export const CHIAVI = ['budget', 'slotP', 'slotD', 'slotC', 'slotA', 'miaSquadra'];
 const RUOLI = ['P', 'D', 'C', 'A'];
 
 export function leggiConfig() {
@@ -66,10 +69,6 @@ export function validaConfig(input) {
   const budget = intero(input.budget);
   if (budget === null || budget <= 0) return err('budget', 'budget deve essere un intero maggiore di 0');
 
-  const numeroSquadre = intero(input.numeroSquadre);
-  if (numeroSquadre === null || numeroSquadre < 2)
-    return err('numeroSquadre', 'numeroSquadre deve essere un intero maggiore o uguale a 2');
-
   const slot = {};
   for (const r of RUOLI) {
     const v = intero(input[`slot${r}`]);
@@ -84,47 +83,23 @@ export function validaConfig(input) {
       `slot totali (${slotTotali}) maggiori del budget (${budget}): la rosa non sarebbe completabile nemmeno a 1 credito per slot`
     );
 
-  if (!Array.isArray(input.nomiSquadre)) return err('nomiSquadre', 'nomiSquadre deve essere una lista');
-  const nomiSquadre = input.nomiSquadre.map((n) => String(n ?? '').trim());
-  if (nomiSquadre.length !== numeroSquadre)
-    return err('nomiSquadre', `numeroSquadre e' ${numeroSquadre} ma nomiSquadre ha ${nomiSquadre.length} elementi`);
-  const iVuoto = nomiSquadre.indexOf('');
-  if (iVuoto >= 0) return err('nomiSquadre', `il nome della squadra ${iVuoto + 1} e' vuoto`);
-  const visti = new Set();
-  for (const n of nomiSquadre) {
-    const k = n.toLowerCase();
-    if (visti.has(k)) return err('nomiSquadre', `nome squadra duplicato: "${n}"`);
-    visti.add(k);
-  }
-
   const miaSquadra = String(input.miaSquadra ?? '').trim();
-  if (!nomiSquadre.includes(miaSquadra))
-    return err('miaSquadra', `miaSquadra "${miaSquadra}" non e' tra i nomi squadra inseriti`);
+  if (!miaSquadra) return err('miaSquadra', 'serve il nome della mia squadra');
 
   return {
     ok: true,
-    valori: {
-      budget,
-      numeroSquadre,
-      slotP: slot.P,
-      slotD: slot.D,
-      slotC: slot.C,
-      slotA: slot.A,
-      nomiSquadre,
-      miaSquadra,
-    },
+    valori: { budget, slotP: slot.P, slotD: slot.D, slotC: slot.C, slotA: slot.A, miaSquadra },
   };
 }
 
-/** Idempotente: dopo la chiamata teams contiene esattamente nomiSquadre.
+/** teams resta, ma con una riga sola: la mia squadra. La tabella serve ancora
+ *  perche' purchases.team_id la referenzia; un elenco di partecipanti che non
+ *  si usa mai era solo un modulo in piu' da compilare.
  *  La DELETE e' sicura perche' questo codice e' raggiungibile solo a config
  *  sbloccata, cioe' con purchases vuota: nessuna riga puo' referenziare un team. */
-function sincronizzaTeams(d, nomiSquadre) {
-  const ph = nomiSquadre.map(() => '?').join(',');
-  const rimosse = d.prepare(`DELETE FROM teams WHERE nome NOT IN (${ph})`).run(...nomiSquadre).changes;
-  const ins = d.prepare('INSERT OR IGNORE INTO teams (nome) VALUES (?)');
-  let inserite = 0;
-  for (const n of nomiSquadre) inserite += ins.run(n).changes;
+function sincronizzaTeams(d, miaSquadra) {
+  const rimosse = d.prepare('DELETE FROM teams WHERE nome <> ?').run(miaSquadra).changes;
+  const inserite = d.prepare('INSERT OR IGNORE INTO teams (nome) VALUES (?)').run(miaSquadra).changes;
   return { inserite, rimosse, totale: d.prepare('SELECT count(*) AS n FROM teams').get().n };
 }
 
@@ -134,6 +109,12 @@ export function salvaConfig(valori) {
       'INSERT INTO config (chiave, valore) VALUES (?, ?) ON CONFLICT(chiave) DO UPDATE SET valore = excluded.valore'
     );
     for (const k of CHIAVI) up.run(k, JSON.stringify(valori[k]));
-    return sincronizzaTeams(d, valori.nomiSquadre);
+    // Un db preparato con una versione precedente conserva numeroSquadre e
+    // nomiSquadre. Nessuno le legge piu', ma leggiConfig() prende tutte le
+    // righe: resterebbero in GET /api/config, cioe' i nomi degli altri
+    // partecipanti spediti al browser senza che servano a niente.
+    const ph = CHIAVI.map(() => '?').join(',');
+    d.prepare(`DELETE FROM config WHERE chiave NOT IN (${ph})`).run(...CHIAVI);
+    return sincronizzaTeams(d, valori.miaSquadra);
   });
 }

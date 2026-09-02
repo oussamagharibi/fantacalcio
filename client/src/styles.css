@@ -226,7 +226,6 @@ label.inline input { flex: 0 0 auto; }
 .riga { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 fieldset { border: 1px solid var(--line); border-radius: var(--r); padding: 12px; margin: 0 0 14px; }
 legend { color: var(--muted); font-size: 13px; padding: 0 6px; }
-.griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .azioni-form { display: flex; gap: 10px; margin-top: 18px; }
 .ko input, .ko select, fieldset.ko { border-color: var(--ko); }
 .riepilogo { display: grid; gap: 6px; margin: 16px 0; }
@@ -266,6 +265,24 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .oltre-eti { flex-basis: 100%; font-weight: 700; }
 .massimo.oltre .n { color: var(--ko); }
 
+/* -------------------------------------------- gol contro xG, da Understat */
+.xg { margin-top: 9px; border-top: 1px solid var(--line); padding-top: 8px; }
+.xg-riga { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.xg-st { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.xg-cifre { font-variant-numeric: tabular-nums; }
+.xg-scarto {
+  margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; font-size: 13px;
+}
+/* Verde = ha segnato meno delle occasioni: e' l'occasione d'acquisto.
+   Rosso = ha segnato molto piu' del previsto: rischio di calo. */
+.xg-scarto.occasione { color: var(--ok); border-color: var(--ok); }
+.xg-scarto.calo { color: var(--ko); border-color: var(--ko); }
+.xg-dett { font-size: 11px; margin-top: 3px; }
+.xg-fonte { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.xg-nota.occasione { color: var(--ok); }
+.xg-nota.calo { color: var(--ko); }
+.xg.compatto .xg-riga { font-size: 12px; }
 /* ------------------------------------------- storico carriera da Wikipedia */
 .carriera { margin-top: 9px; border-top: 1px solid var(--line); padding-top: 8px; }
 .carriera-testa { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
@@ -286,6 +303,9 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .prep-riquadro form { margin-top: 16px; }
 .etichetta-ruolo { display: flex; align-items: center; gap: 6px; }
 .etichetta-ruolo i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+/* i due campi singoli non stanno dentro una label: vanno dimensionati qui */
+.prep-riquadro fieldset > input { width: 100%; }
+.prep-riquadro fieldset > input[type='number'] { width: 140px; }
 .nuova-asta { width: 100%; margin-top: 6px; }
 .dati { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 18px; }
 .dati > h2 { font-size: 18px; margin-bottom: 12px; }

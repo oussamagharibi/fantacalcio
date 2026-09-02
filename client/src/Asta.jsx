@@ -4,6 +4,7 @@ import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import { percentuale, perSlot, proiezionePrezzo } from './budget.js';
 import Carriera from './Carriera.jsx';
+import Xg from './Xg.jsx';
 import Preparazione from './Preparazione.jsx';
 import { postReset } from './api.js';
 
@@ -333,6 +334,7 @@ L'operazione non si annulla. Procedere?`
               </div>
             )}
 
+            <Xg dati={lotto.xg} />
             <Carriera righe={lotto.carriera} ruolo={lotto.ruolo} />
 
             {lotto.note && (
