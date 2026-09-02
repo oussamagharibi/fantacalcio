@@ -1,6 +1,7 @@
 import { getDb, tx } from '../db.js';
 import { leggiConfig } from './config.js';
 import { carrierePerGiocatore } from './wiki.js';
+import { datiCaricamento } from './listone.js';
 
 /** Stato operativo dell'asta: chi e' ancora disponibile, la mia rosa, il
  *  massimo che posso permettermi. Nessuna rete qui dentro: durante l'asta si
@@ -14,7 +15,10 @@ const RUOLI = ['P', 'D', 'C', 'A'];
 const SEP_CAMPO = String.fromCharCode(31);
 const SEP_VOCE = String.fromCharCode(30);
 
-/** Tutti i giocatori con quello che serve a decidere, in una query sola.
+/** Tutti i giocatori, compresi quelli usciti dal listino: la pagina Listone
+ *  li mostra con la data di uscita. Analisi e Asta filtrano su assente_dal.
+ *
+ *  Con quello che serve a decidere, in una query sola.
  *  Del fatto che un giocatore sia stato comprato si tiene solo il "non e' piu'
  *  disponibile": da chi e a quanto non esce nemmeno dal server. Il tabellone
  *  delle altre squadre non e' cosa di questa applicazione, e un campo spedito
@@ -27,7 +31,7 @@ export function giocatori() {
   return getDb()
     .prepare(
       `SELECT p.id, p.nome, p.squadra, p.ruolo, p.quotazione, p.quotazione_iniziale, p.fvm,
-              p.rapporto_fvm, p.fascia, p.note, p.note_generated_at,
+              p.rapporto_fvm, p.fascia, p.note, p.note_generated_at, p.assente_dal,
               t.player_id IS NOT NULL AS target,
               u.player_id IS NOT NULL AS uscito,
               a.player_id IS NOT NULL AS acquistato,
@@ -37,7 +41,6 @@ export function giocatori() {
          LEFT JOIN targets t ON t.player_id = p.id
          LEFT JOIN usciti u ON u.player_id = p.id
          LEFT JOIN purchases a ON a.player_id = p.id
-        WHERE p.assente_dal IS NULL
         ORDER BY p.quotazione DESC, p.nome`
     )
     .all()
@@ -108,9 +111,17 @@ export function restanti() {
     .all();
 }
 
+/** Quanti giocatori ci sono e quanti sono ancora in listino: la testata della
+ *  pagina Listone. */
+const contaListone = () =>
+  getDb()
+    .prepare('SELECT count(*) AS totale, sum(assente_dal IS NULL) AS attivi FROM players')
+    .get();
+
 /** statsVuote dice all'interfaccia di avvisare che manca lo storico fanta:
  *  Wikipedia da' presenze e gol, la fantamedia solo gli Excel di fantacalcio.it. */
 export const stato = () => ({
+  listone: { ...datiCaricamento(), ...contaListone() },
   giocatori: giocatori(),
   rosa: rosa(),
   restanti: restanti(),

@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { getConfig, getStato } from './api.js';
 import Analisi from './Analisi.jsx';
+import Listone from './Listone.jsx';
 import Asta from './Asta.jsx';
 
 /** Routing sull'hash invece di una libreria: due pagine non giustificano una
  *  dipendenza, e l'hash sopravvive al refresh senza toccare il server. */
-const paginaDaHash = () => (window.location.hash.replace('#/', '') === 'asta' ? 'asta' : 'analisi');
+const PAGINE = ['analisi', 'listone', 'asta'];
+const paginaDaHash = () => {
+  const h = window.location.hash.replace('#/', '');
+  return PAGINE.includes(h) ? h : 'analisi';
+};
 
 export default function App() {
   const [config, setConfig] = useState(null);
@@ -56,12 +61,11 @@ export default function App() {
         {/* Senza configurazione non c'e' una "mia squadra" da mostrare: la
             pagina Analisi si usa lo stesso, quindi la barra non deve dipenderne. */}
         <span className="marchio">{config.configurata ? config.config.miaSquadra : 'Asta Fantacalcio'}</span>
-        <button className={pagina === 'analisi' ? 'tab attiva' : 'tab'} onClick={() => vai('analisi')}>
-          Analisi
-        </button>
-        <button className={pagina === 'asta' ? 'tab attiva' : 'tab'} onClick={() => vai('asta')}>
-          Asta
-        </button>
+        {PAGINE.map((p) => (
+          <button key={p} className={pagina === p ? 'tab attiva' : 'tab'} onClick={() => vai(p)}>
+            {p[0].toUpperCase() + p.slice(1)}
+          </button>
+        ))}
         <span className="spazio" />
         {config.configurata ? (
           <span className="stato-barra">
@@ -79,11 +83,9 @@ export default function App() {
           <span className="stato-barra muted">asta non ancora configurata</span>
         )}
       </nav>
-      {pagina === 'asta' ? (
-        <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} />
-      ) : (
-        <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />
-      )}
+      {pagina === 'asta' && <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} />}
+      {pagina === 'listone' && <Listone stato={stato} />}
+      {pagina === 'analisi' && <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />}
     </>
   );
 }

@@ -69,6 +69,14 @@ CREATE TABLE IF NOT EXISTS carriera (
   PRIMARY KEY (player_id, stagione, squadra, competizione)
 );
 
+-- Metadati dell'applicazione, chiave/valore. Serve per cose che non sono
+-- configurazione dell'asta: da quale file viene il listone e quando e' stato
+-- caricato. Tenerle in config le avrebbe mischiate a budget e squadre.
+CREATE TABLE IF NOT EXISTS meta (
+  chiave TEXT PRIMARY KEY,
+  valore TEXT
+);
+
 -- Giocatori marcati come obiettivo dalla pagina Analisi.
 CREATE TABLE IF NOT EXISTS targets (
   player_id INTEGER PRIMARY KEY REFERENCES players(id),

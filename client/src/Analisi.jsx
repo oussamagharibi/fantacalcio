@@ -124,7 +124,9 @@ export default function Analisi({ stato, onStato, onRicarica }) {
 
   const perReparto = useMemo(() => {
     const m = Object.fromEntries(ORDINE_RUOLI.map((r) => [r, []]));
-    for (const g of stato.giocatori) m[g.ruolo]?.push(g);
+    // Chi e' uscito dal listino resta nello stato per la pagina Listone, ma
+    // qui non si compra piu': fuori dai reparti.
+    for (const g of stato.giocatori) if (!g.assente_dal) m[g.ruolo]?.push(g);
     return m;
   }, [stato.giocatori]);
 

@@ -86,7 +86,7 @@ app.post('/api/listone/upload', async (req, reply) => {
   }
 
   try {
-    const r = salvaEImporta(buf, 'il file caricato');
+    const r = salvaEImporta(buf, 'il file caricato', parte.filename);
     req.log.info(
       { nomeFile: parte.filename, righeLette: r.righeLette, inserite: r.inserite, aggiornate: r.aggiornate },
       'listone caricato'

@@ -294,6 +294,30 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .blocco-dati .bottone { margin-top: 10px; }
 .blocco-dati .avanzamento { margin-top: 12px; }
 
+/* ------------------------------------------------------- pagina listone */
+.testata-listone { display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+.testata-listone h2 { font-size: 20px; }
+.testata-listone p { margin: 4px 0 0; font-size: 13px; }
+.cerca-listone { min-width: 190px; }
+.conteggio { font-size: 13px; color: var(--muted); }
+.conteggio strong { color: var(--fg); font-size: 15px; }
+.filtri .chip .punto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.tabella-listone { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tabella-listone th, .tabella-listone td { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.tabella-listone th { position: sticky; top: 52px; background: #12151c; color: var(--muted);
+  font-weight: 600; white-space: nowrap; z-index: 2; }
+.tabella-listone th.ordinabile { cursor: pointer; user-select: none; }
+.tabella-listone th.ordinabile:hover { color: var(--fg); }
+.tabella-listone th.num, .tabella-listone td.num { text-align: right; }
+.tabella-listone th.stretta, .tabella-listone td.stretta { width: 34px; text-align: center; }
+.tabella-listone tbody tr:hover { background: var(--card); }
+.tabella-listone tr.uscito { opacity: 0.5; }
+.tabella-listone td.sq { white-space: nowrap; }
+.tabella-listone td.sq .badge-squadra { vertical-align: -3px; margin-right: 4px; }
+.tabella-listone td.su { color: var(--ok); }
+.tabella-listone td.giu { color: var(--ko); }
+
 /* ------------------------------------------------------------- responsive */
 /* Sotto i 900px le tre zone si impilano, con ricerca e lotto SEMPRE in cima:
    durante l'asta e' l'unica cosa che deve stare sotto le dita. */

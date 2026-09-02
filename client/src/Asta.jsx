@@ -52,7 +52,7 @@ export default function Asta({ stato, onStato, config, onRicarica }) {
   };
 
   const disponibili = useMemo(
-    () => stato.giocatori.filter((g) => !g.uscito && !g.acquistato),
+    () => stato.giocatori.filter((g) => !g.uscito && !g.acquistato && !g.assente_dal),
     [stato.giocatori]
   );
 

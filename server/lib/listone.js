@@ -195,7 +195,7 @@ export function importaRighe(letto, { segnaUscite = true } = {}) {
  *  file caricato a mano e per quello scaricato. Cambia la provenienza, non i
  *  controlli. Il file esistente si tocca solo dopo che il nuovo e' stato
  *  validato e letto per intero: se qualcosa non va, resta buono quello vecchio. */
-export function salvaEImporta(buf, provenienza = 'il file') {
+export function salvaEImporta(buf, provenienza = 'il file', nomeFile = null) {
   if (buf.length < DIMENSIONE_MINIMA)
     throw new ErroreFoglio(
       provenienza +
@@ -228,11 +228,34 @@ export function salvaEImporta(buf, provenienza = 'il file') {
   fs.mkdirSync(path.dirname(LISTONE_PATH), { recursive: true });
   fs.writeFileSync(LISTONE_PATH, buf);
 
-  return { backupListone, ...importaRighe(letto) };
+  const esito = importaRighe(letto);
+  segnaCaricamento(nomeFile ?? path.basename(LISTONE_PATH));
+  return { backupListone, ...esito };
 }
 
+/** Da quale file viene il listone in archivio e quando e' stato caricato.
+ *  Senza questo, davanti a una tabella di 538 righe non si sa se sono di ieri
+ *  o di tre settimane fa. */
+export function segnaCaricamento(nomeFile) {
+  const up = getDb().prepare(
+    'INSERT INTO meta (chiave, valore) VALUES (?, ?) ON CONFLICT(chiave) DO UPDATE SET valore = excluded.valore'
+  );
+  up.run('listone.nomeFile', String(nomeFile ?? 'sconosciuto'));
+  up.run('listone.caricatoIl', new Date().toISOString());
+}
+
+export const datiCaricamento = () => {
+  const righe = getDb().prepare("SELECT chiave, valore FROM meta WHERE chiave LIKE 'listone.%'").all();
+  const m = Object.fromEntries(righe.map((r) => [r.chiave.replace('listone.', ''), r.valore]));
+  return { nomeFile: m.nomeFile ?? null, caricatoIl: m.caricatoIl ?? null };
+};
+
 /** Import dal file locale: non tocca la rete, deve funzionare sempre. */
-export const importaDaFile = (origine = LISTONE_PATH) => importaRighe(leggiListone(origine));
+export function importaDaFile(origine = LISTONE_PATH) {
+  const r = importaRighe(leggiListone(origine));
+  segnaCaricamento(path.basename(String(origine)));
+  return r;
+}
 
 /** Scarica il listone e reimporta. Da usare SOLO prima dell'asta, mai durante.
  *  Attenzione: da un IP di datacenter fantacalcio.it risponde spesso 401, quindi
