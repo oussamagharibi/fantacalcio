@@ -86,7 +86,7 @@ export default function App() {
       </nav>
       {pagina === 'asta' && <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} />}
       {pagina === 'listone' && <Listone stato={stato} />}
-      {pagina === 'situazione' && <Situazione stato={stato} />}
+      {pagina === 'situazione' && <Situazione stato={stato} onStato={setStato} />}
       {pagina === 'analisi' && <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />}
     </>
   );

@@ -6,7 +6,14 @@ import fastifyMultipart from '@fastify/multipart';
 import { getDb, backup, DB_PATH, DATA_DIR, SU_VOLUME, ROOT } from './db.js';
 import { statoConfig, validaConfig, salvaConfig, bloccata, numeroAcquisti } from './lib/config.js';
 import { scaricaListone, salvaEImporta, ErroreDownload, ErroreListone } from './lib/listone.js';
-import { stato, registraAcquisto, registraUscita, annullaUltima, commutaTarget } from './lib/asta.js';
+import {
+  stato,
+  registraAcquisto,
+  registraUscita,
+  annullaUltima,
+  annullaGiocatore,
+  commutaTarget,
+} from './lib/asta.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -170,9 +177,16 @@ app.post('/api/usciti', (req, reply) => {
   return { ...r, ...stato() };
 });
 
-/** Ctrl+Z: toglie l'ultima riga scritta, acquisto o uscita che sia. */
+/** Senza playerId e' il Ctrl+Z dell'asta: via l'ultima riga scritta, acquisto
+ *  o uscita che sia. Con playerId e' la X di una riga della pagina Situazione:
+ *  via l'azione di quel giocatore e basta. Stessa rotta perche' e' la stessa
+ *  cosa - disfare - e la logica sta tutta in asta.js. */
 app.post('/api/annulla', (req, reply) => {
-  const r = annullaUltima();
+  const grezzo = req.body?.playerId;
+  const playerId = grezzo === undefined || grezzo === null ? null : Number(grezzo);
+  if (playerId !== null && !Number.isInteger(playerId))
+    return reply.code(400).send({ error: 'playerId non intero' });
+  const r = playerId === null ? annullaUltima() : annullaGiocatore(playerId);
   if (!r.ok) return reply.code(409).send({ error: r.errore });
   req.log.warn({ annullata: r.annullata }, 'azione annullata');
   return { ...r, ...stato() };

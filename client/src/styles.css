@@ -338,6 +338,37 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .tabella-listone td.su { color: var(--ok); }
 .tabella-listone td.giu { color: var(--ko); }
 
+/* --------------------------------- pagina Situazione: righe operabili */
+/* Tinte desaturate, non colori pieni: la riga deve restare leggibile su
+   fondo scuro, e sono decine di righe una sopra l'altra. Il verde e il
+   grigio si vedono, ma non gridano. */
+.tabella-situazione tr.riga-me { background: rgba(76, 175, 125, 0.10); }
+.tabella-situazione tr.riga-me:hover { background: rgba(76, 175, 125, 0.16); }
+.tabella-situazione tr.riga-me td.prezzo { color: var(--ok); font-weight: 700; }
+.tabella-situazione tr.riga-uscito { background: rgba(139, 144, 160, 0.07); color: var(--muted); }
+.tabella-situazione tr.riga-uscito:hover { background: rgba(139, 144, 160, 0.12); }
+.tabella-situazione tr.riga-uscito td { color: var(--muted); }
+.tabella-situazione td.prezzo { width: 54px; }
+.tabella-situazione th.azioni, .tabella-situazione td.azioni { width: 1%; white-space: nowrap; text-align: right; }
+
+.az-gruppo, .az-prezzo { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
+.az {
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 6px; padding: 2px 8px; font-size: 11.5px; cursor: pointer;
+  transition: color var(--veloce), border-color var(--veloce);
+}
+.az:hover:not(:disabled) { color: var(--fg); border-color: var(--acc); }
+.az:disabled { opacity: 0.4; cursor: not-allowed; }
+.az.ok { color: var(--ok); border-color: var(--ok); }
+.az.ko { color: var(--ko); border-color: var(--ko); }
+.az.x { padding: 2px 7px; }
+.az.x:hover { color: var(--ko); border-color: var(--ko); }
+.az-prezzo input { width: 74px; padding: 2px 6px; font-size: 12px; }
+/* L'avviso sul massimo sostenibile non blocca niente: il prezzo lo fa
+   l'asta, non l'applicazione. */
+.az-avviso { color: var(--oro); font-size: 11px; white-space: nowrap; }
+
+
 /* ---------------------------------------------------- pagina situazione */
 .riepilogo-situazione { display: grid; gap: 12px; margin-bottom: 16px; }
 .rs-totali { display: flex; gap: 26px; flex-wrap: wrap; background: var(--card);

@@ -25,7 +25,9 @@ export function uploadListone(file) {
 export const getStato = () => json('/api/stato');
 export const postAcquisto = (playerId, prezzo) => invia('/api/acquisti', { playerId, prezzo });
 export const postUscita = (playerId) => invia('/api/usciti', { playerId });
-export const postAnnulla = () => invia('/api/annulla', {});
+/** Senza argomenti annulla l'ultima azione (Ctrl+Z dell'asta); con un
+ *  playerId annulla quella di quel giocatore (la X in pagina Situazione). */
+export const postAnnulla = (playerId) => invia('/api/annulla', playerId ? { playerId } : {});
 export const postTarget = (playerId) => invia('/api/target', { playerId });
 
 /** Azzera l'asta: cancella tutti gli acquisti. Chi la chiama deve gia' aver

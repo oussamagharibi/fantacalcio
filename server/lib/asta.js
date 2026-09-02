@@ -209,6 +209,27 @@ export function annullaUltima() {
   });
 }
 
+/** Annulla l'azione di UN giocatore invece dell'ultima in ordine di tempo.
+ *  Dalla pagina Situazione si agisce su una riga, e quale riga lo dice chi
+ *  guarda: cercare "l'ultima" li' non vorrebbe dire niente.
+ *  Stessa regola di annullaUltima: si cancella la riga, non la si corregge. */
+export function annullaGiocatore(playerId) {
+  const db = getDb();
+  const g = db.prepare('SELECT id, nome FROM players WHERE id = ?').get(playerId);
+  if (!g) return { ok: false, errore: 'giocatore inesistente' };
+  const acquisto = db.prepare('SELECT id, prezzo FROM purchases WHERE player_id = ?').get(playerId);
+  const uscita = db.prepare('SELECT id FROM usciti WHERE player_id = ?').get(playerId);
+  if (!acquisto && !uscita) return { ok: false, errore: `${g.nome} e' gia' disponibile` };
+  return tx((d) => {
+    if (acquisto) {
+      d.prepare('DELETE FROM purchases WHERE id = ?').run(acquisto.id);
+      return { ok: true, annullata: { tipo: 'acquisto', nome: g.nome, prezzo: acquisto.prezzo } };
+    }
+    d.prepare('DELETE FROM usciti WHERE id = ?').run(uscita.id);
+    return { ok: true, annullata: { tipo: 'uscita', nome: g.nome } };
+  });
+}
+
 export function commutaTarget(playerId) {
   const db = getDb();
   if (!db.prepare('SELECT 1 FROM players WHERE id = ?').get(playerId))
