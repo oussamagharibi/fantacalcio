@@ -1,5 +1,6 @@
 import { getDb, tx } from '../db.js';
 import { scaricaSePermesso, ErroreHttp } from './web.js';
+import { normalizza as normalizzaBase } from './testo.js';
 
 /** Parser dedicati alle pagine-elenco di Fantacalcio.it. Sono liste, non
  *  articoli: ogni giocatore sta nel suo blocco, accanto alla sua squadra e al
@@ -123,11 +124,10 @@ export const FONTI_CON_PARSER = new Set(PAGINE.map((p) => p.fonte));
 
 // ------------------------------------------------------------- abbinamento
 
+/** Sopra la base condivisa: qui si buttano anche punteggiatura e simboli,
+ *  perche' si confrontano nomi di giocatore, non prosa. */
 const normalizza = (s) =>
-  String(s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+  normalizzaBase(s)
     .replace(/[^a-z0-9. ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

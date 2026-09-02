@@ -55,6 +55,20 @@ CREATE TABLE IF NOT EXISTS stats (
   PRIMARY KEY (player_id, stagione)
 );
 
+-- Storico di carriera da Wikipedia: presenze e gol REALI, non di fantacalcio.
+-- Media voto e fantamedia non stanno qui, arrivano dagli Excel in stats.
+-- Per i portieri gol e' negativo: sono le reti subite, come le scrive Wikipedia.
+CREATE TABLE IF NOT EXISTS carriera (
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  stagione TEXT NOT NULL,
+  squadra TEXT NOT NULL,
+  competizione TEXT NOT NULL,
+  presenze INTEGER,
+  gol INTEGER,
+  fonte TEXT,
+  PRIMARY KEY (player_id, stagione, squadra, competizione)
+);
+
 -- Giocatori marcati come obiettivo dalla pagina Analisi.
 CREATE TABLE IF NOT EXISTS targets (
   player_id INTEGER PRIMARY KEY REFERENCES players(id),

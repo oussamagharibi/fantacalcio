@@ -1,5 +1,6 @@
 import { getDb, tx } from '../db.js';
 import { leggiConfig } from './config.js';
+import { carrierePerGiocatore } from './wiki.js';
 
 /** Stato operativo dell'asta: chi e' ancora disponibile, la mia rosa, il
  *  massimo che posso permettermi. Nessuna rete qui dentro: durante l'asta si
@@ -13,23 +14,29 @@ const RUOLI = ['P', 'D', 'C', 'A'];
 const SEP_CAMPO = String.fromCharCode(31);
 const SEP_VOCE = String.fromCharCode(30);
 
-/** Tutti i giocatori con quello che serve a decidere, in una query sola. */
+/** Tutti i giocatori con quello che serve a decidere, in una query sola.
+ *  Del fatto che un giocatore sia stato comprato si tiene solo il "non e' piu'
+ *  disponibile": da chi e a quanto non esce nemmeno dal server. Il tabellone
+ *  delle altre squadre non e' cosa di questa applicazione, e un campo spedito
+ *  al browser prima o poi qualcuno lo mostra. */
 export function giocatori() {
+  // Le ultime stagioni di carriera viaggiano dentro lo stato invece che a
+  // richiesta: durante l'asta non si fanno chiamate di rete oltre alle
+  // scritture, quindi quando si apre un lotto il dato deve essere gia' qui.
+  const carriere = carrierePerGiocatore(5);
   return getDb()
     .prepare(
       `SELECT p.id, p.nome, p.squadra, p.ruolo, p.quotazione, p.quotazione_iniziale, p.fvm,
               p.rapporto_fvm, p.fascia, p.note, p.note_generated_at,
               t.player_id IS NOT NULL AS target,
               u.player_id IS NOT NULL AS uscito,
-              a.prezzo AS prezzoPagato,
-              sq.nome AS presoDa,
+              a.player_id IS NOT NULL AS acquistato,
               (SELECT group_concat(s.tipo || char(31) || s.testo, char(30))
                  FROM segnali s WHERE s.player_id = p.id) AS segnali
          FROM players p
          LEFT JOIN targets t ON t.player_id = p.id
          LEFT JOIN usciti u ON u.player_id = p.id
          LEFT JOIN purchases a ON a.player_id = p.id
-         LEFT JOIN teams sq ON sq.id = a.team_id
         WHERE p.assente_dal IS NULL
         ORDER BY p.quotazione DESC, p.nome`
     )
@@ -38,6 +45,8 @@ export function giocatori() {
       ...r,
       target: !!r.target,
       uscito: !!r.uscito,
+      acquistato: !!r.acquistato,
+      carriera: carriere.get(r.id) ?? [],
       segnali: (r.segnali ?? '')
         .split(SEP_VOCE)
         .filter(Boolean)
@@ -99,7 +108,14 @@ export function restanti() {
     .all();
 }
 
-export const stato = () => ({ giocatori: giocatori(), rosa: rosa(), restanti: restanti() });
+/** statsVuote dice all'interfaccia di avvisare che manca lo storico fanta:
+ *  Wikipedia da' presenze e gol, la fantamedia solo gli Excel di fantacalcio.it. */
+export const stato = () => ({
+  giocatori: giocatori(),
+  rosa: rosa(),
+  restanti: restanti(),
+  statsVuote: getDb().prepare('SELECT count(*) AS n FROM stats').get().n === 0,
+});
 
 // -------------------------------------------------------------------- azioni
 

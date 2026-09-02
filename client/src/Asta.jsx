@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { postAcquisto, postUscita, postAnnulla } from './api.js';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
+import { percentuale, perSlot, proiezionePrezzo } from './budget.js';
+import Carriera from './Carriera.jsx';
 
 const MIN_LETTERE = 3;
 const MAX_RISULTATI = 9;
@@ -44,7 +46,7 @@ export default function Asta({ stato, onStato }) {
   };
 
   const disponibili = useMemo(
-    () => stato.giocatori.filter((g) => !g.uscito && g.prezzoPagato === null),
+    () => stato.giocatori.filter((g) => !g.uscito && !g.acquistato),
     [stato.giocatori]
   );
 
@@ -129,6 +131,10 @@ export default function Asta({ stato, onStato }) {
   }, [lotto]);
 
   const r = stato.rosa;
+  const pct = (x) => percentuale(x, r.budget);
+  /** Ricalcolata a ogni tasto: il valore di prezzo viene dallo stato, quindi
+   *  ogni battuta rifa' il render e con esso la proiezione. */
+  const proiezione = proiezionePrezzo(r, prezzo);
   const totalePerRuolo = (ruolo) => stato.restanti.filter((x) => x.ruolo === ruolo).reduce((s, x) => s + x.n, 0);
   const perFascia = (ruolo, f) => stato.restanti.filter((x) => x.ruolo === ruolo && x.fascia === f).reduce((s, x) => s + x.n, 0);
   const massimoRuolo = Math.max(1, ...ORDINE_RUOLI.map(totalePerRuolo));
@@ -138,6 +144,34 @@ export default function Asta({ stato, onStato }) {
       {/* ------------------------------------------------ sinistra: la rosa */}
       <aside className="zona">
         <h3>La mia rosa &mdash; {r.squadra}</h3>
+
+        <div className="budget">
+          <div className="budget-riga">
+            <span className="muted">speso</span>
+            <span>
+              <strong>{r.spesa}</strong>
+              <span className="muted">/{r.budget}</span>
+            </span>
+            <span className="budget-pct">{pct(r.spesa)}%</span>
+          </div>
+          <div className="budget-riga">
+            <span className="muted">residuo</span>
+            <span>
+              <strong>{r.residuo}</strong>
+            </span>
+            <span className="budget-pct">{pct(r.residuo)}%</span>
+          </div>
+          <div className="budget-traccia">
+            <div className="budget-speso" style={{ width: `${Math.min(100, (100 * r.spesa) / (r.budget || 1))}%` }} />
+          </div>
+          <div className="budget-riga media">
+            <span className="muted">per slot libero</span>
+            <span>
+              <strong>{perSlot(r.residuo, r.slotLiberi)}</strong>
+              <span className="muted"> crediti medi su {r.slotLiberi}</span>
+            </span>
+          </div>
+        </div>
         {ORDINE_RUOLI.map((ruolo) => {
           const presi = r.presi.filter((p) => p.ruolo === ruolo);
           const posti = Array.from({ length: r.slot[ruolo] ?? 0 }, (_, i) => presi[i] ?? null);
@@ -225,7 +259,7 @@ export default function Asta({ stato, onStato }) {
                   <Fascia valore={lotto.fascia} ruolo={lotto.ruolo} />
                 </div>
               </div>
-              <div className="massimo">
+              <div className={`massimo${proiezione?.oltre ? ' oltre' : ''}`}>
                 <span className="eti">massimo sostenibile</span>
                 <span className="n">{r.massimoSostenibile}</span>
               </div>
@@ -254,10 +288,30 @@ export default function Asta({ stato, onStato }) {
               </div>
             )}
 
+            <Carriera righe={lotto.carriera} ruolo={lotto.ruolo} />
+
             {lotto.note && (
               <div className="nota-corpo" style={{ marginTop: 10 }}>
                 {lotto.note}
                 <span className="nota-data">generata il {new Date(lotto.note_generated_at).toLocaleString('it-IT')}</span>
+              </div>
+            )}
+
+            {/* Proiezione dal vivo: cambia a ogni tasto, prima di confermare. */}
+            {proiezione && (
+              <div className={`proiezione${proiezione.oltre ? ' oltre' : ''}`}>
+                <span>
+                  <strong>{proiezione.prezzo}</strong> crediti = <strong>{proiezione.quotaBudget}%</strong> del budget
+                </span>
+                <span className="sep">·</span>
+                <span>
+                  resterebbero <strong>{proiezione.residuoDopo}</strong> ({proiezione.residuoDopoPct}%)
+                </span>
+                <span className="sep">·</span>
+                <span>
+                  <strong>{proiezione.perSlotDopo}</strong> per ognuno dei {proiezione.slotDopo} slot rimasti
+                </span>
+                {proiezione.oltre && <span className="oltre-eti">oltre il massimo sostenibile ({r.massimoSostenibile})</span>}
               </div>
             )}
 

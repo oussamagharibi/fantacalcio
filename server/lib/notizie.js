@@ -1,5 +1,9 @@
 import { getDb, tx } from '../db.js';
 import { scaricaSePermesso, ErroreHttp } from './web.js';
+import { normalizza, normalizzaConIndici } from './testo.js';
+
+// Rieportate perche' news.js e le prove le importano da qui.
+export { normalizza, normalizzaConIndici };
 
 export const GIORNI_MAX = 15;
 /** Tetto per fonte: senza, un feed lungo diventa decine di richieste da 2s. */
@@ -279,12 +283,6 @@ export async function raccogli(fonti, log = () => {}) {
 
 // ---------------------------------------------------------------- associazione
 
-export const normalizza = (s) =>
-  String(s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-
 /** Nel listone i nomi sono abbreviati: "Martinez L.", "Esposito F.P.".
  *  I pezzi puntati sono iniziali del nome proprio e vanno via; quel che resta
  *  e' il cognome, anche se composto ("De Ketelaere"). */
@@ -302,22 +300,6 @@ export const CARATTERI_MINIMI = 5;
  *  di caratteri e nominano tutti: tagliarne l'inizio darebbe al modello un
  *  pezzo che quel giocatore non lo cita nemmeno. */
 export const CONTESTO_CARATTERI = 700;
-
-/** Normalizza tenendo la corrispondenza con le posizioni originali, cosi' la
- *  finestra di contesto si puo' ritagliare dal testo vero, con accenti e
- *  maiuscole al loro posto. */
-export function normalizzaConIndici(s) {
-  let testo = '';
-  const indici = [];
-  const src = String(s ?? '');
-  for (let i = 0; i < src.length; i++) {
-    for (const c of normalizza(src[i])) {
-      testo += c;
-      indici.push(i);
-    }
-  }
-  return { testo, indici };
-}
 
 /** Finestra centrata sulla prima occorrenza, allargata ai confini di parola. */
 export function estrattoAttorno(testo, indici, posizione, lunghezza) {

@@ -243,6 +243,42 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .esito { border: 1px solid var(--acc); border-radius: var(--r); padding: 12px; margin-top: 14px; }
 .esito p { margin: 0 0 6px; }
 
+/* ------------------------------------------------- budget in cifre e in % */
+.budget { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; margin-bottom: 12px; font-size: 13px; }
+.budget-riga { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.budget-riga > :nth-child(2) { flex: 1; font-variant-numeric: tabular-nums; }
+.budget-pct { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.budget-traccia { height: 5px; background: #10131a; border-radius: 3px; overflow: hidden; margin: 7px 0 6px; }
+.budget-speso { height: 100%; background: var(--acc); border-radius: 3px; transition: width var(--media) linear; }
+.budget-riga.media { margin: 0; padding-top: 5px; border-top: 1px solid var(--line); }
+
+/* Proiezione del prezzo digitato: rossa appena supera il sostenibile. */
+.proiezione {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px;
+  margin-top: 12px; padding: 9px 11px; border-radius: 8px;
+  background: #10131a; border: 1px solid var(--line); font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.proiezione strong { color: var(--fg); }
+.proiezione .sep { color: var(--line); }
+.proiezione.oltre { border-color: var(--ko); color: var(--ko); }
+.proiezione.oltre strong { color: var(--ko); }
+.oltre-eti { flex-basis: 100%; font-weight: 700; }
+.massimo.oltre .n { color: var(--ko); }
+
+/* ------------------------------------------- storico carriera da Wikipedia */
+.carriera { margin-top: 9px; border-top: 1px solid var(--line); padding-top: 8px; }
+.carriera-testa { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.carriera-testa .muted { text-transform: none; letter-spacing: 0; }
+.carriera-tab { width: 100%; border-collapse: collapse; font-size: 12px; }
+.carriera-tab td { padding: 1px 4px; }
+.carriera-tab .st { color: var(--muted); white-space: nowrap; }
+.carriera-tab .sq { width: 99%; overflow: hidden; text-overflow: ellipsis; }
+.carriera-tab .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.carriera-fonte { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.banner { border: 1px solid var(--oro); border-radius: var(--r); padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
+.banner code { background: #10131a; border-radius: 4px; padding: 1px 5px; font-family: inherit; }
+
 /* ------------------------------------------------------------- responsive */
 /* Sotto i 900px le tre zone si impilano, con ricerca e lotto SEMPRE in cima:
    durante l'asta e' l'unica cosa che deve stare sotto le dita. */

@@ -3,6 +3,7 @@ import { postTarget, postGeneraAnalisi, getStatoAnalisi, getStato } from './api.
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
+import Carriera from './Carriera.jsx';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
  *  titolarita'. Il testo lungo resta nel title, la card non si allarga. */
@@ -30,7 +31,7 @@ function CardGiocatore({ g, onStella }) {
   };
 
   return (
-    <article className={`card-g${g.uscito || g.prezzoPagato !== null ? ' fuori' : ''}`} style={{ '--linea-ruolo': colore }}>
+    <article className={`card-g${g.uscito || g.acquistato ? ' fuori' : ''}`} style={{ '--linea-ruolo': colore }}>
       <button
         className={`stella${g.target ? ' attiva' : ''}${pop ? ' pop' : ''}`}
         onClick={stella}
@@ -68,6 +69,8 @@ function CardGiocatore({ g, onStella }) {
           ))}
         </div>
       )}
+
+      <Carriera righe={g.carriera} ruolo={g.ruolo} />
 
       {g.note && (
         <>
@@ -137,6 +140,16 @@ export default function Analisi({ stato, onStato, onRicarica }) {
   return (
     <main className="wrap largo">
       {/* I reparti come tab: si cambia senza scorrere una pagina lunga. */}
+      {/* Wikipedia da' presenze e gol, non la fantamedia: se stats e' vuota
+          va detto, altrimenti sembra che i dati fanta non esistano. */}
+      {stato.statsVuote && (
+        <p className="avviso banner">
+          Storico fanta non disponibile: carica gli Excel statistiche di fantacalcio.it in <code>/data</code> e lancia{' '}
+          <code>npm run import-stats</code>. Lo storico carriera qui sotto viene da Wikipedia e riporta presenze e gol
+          reali, non media voto ne' fantamedia.
+        </p>
+      )}
+
       <div className="tabs-reparto">
         {ORDINE_RUOLI.map((r) => (
           <button
