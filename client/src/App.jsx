@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getConfig, getStato } from './api.js';
-import Setup from './Setup.jsx';
 import Analisi from './Analisi.jsx';
 import Asta from './Asta.jsx';
 
@@ -13,7 +12,6 @@ export default function App() {
   const [stato, setStato] = useState(null);
   const [errore, setErrore] = useState(null);
   const [pagina, setPagina] = useState(paginaDaHash);
-  const [modifica, setModifica] = useState(false);
 
   useEffect(() => {
     const cambio = () => setPagina(paginaDaHash());
@@ -46,19 +44,6 @@ export default function App() {
       </main>
     );
 
-  if (!config.configurata || modifica)
-    return (
-      <Setup
-        iniziale={config.config}
-        onSalvata={(c) => {
-          setConfig(c);
-          setModifica(false);
-          ricarica();
-        }}
-        onAnnulla={config.configurata ? () => setModifica(false) : null}
-      />
-    );
-
   const vai = (p) => {
     window.location.hash = `#/${p}`;
     setPagina(p);
@@ -68,7 +53,9 @@ export default function App() {
   return (
     <>
       <nav className="barra">
-        <span className="marchio">{config.config.miaSquadra}</span>
+        {/* Senza configurazione non c'e' una "mia squadra" da mostrare: la
+            pagina Analisi si usa lo stesso, quindi la barra non deve dipenderne. */}
+        <span className="marchio">{config.configurata ? config.config.miaSquadra : 'Asta Fantacalcio'}</span>
         <button className={pagina === 'analisi' ? 'tab attiva' : 'tab'} onClick={() => vai('analisi')}>
           Analisi
         </button>
@@ -76,25 +63,24 @@ export default function App() {
           Asta
         </button>
         <span className="spazio" />
-        <span className="stato-barra">
-          <span>
-            rosa <strong>{stato.rosa.presi.length}</strong>/{slotTotali}
+        {config.configurata ? (
+          <span className="stato-barra">
+            <span>
+              rosa <strong>{stato.rosa.presi.length}</strong>/{slotTotali}
+            </span>
+            <span>
+              crediti <strong>{stato.rosa.residuo}</strong>
+            </span>
+            <span>
+              max <strong>{stato.rosa.massimoSostenibile}</strong>
+            </span>
           </span>
-          <span>
-            crediti <strong>{stato.rosa.residuo}</strong>
-          </span>
-          <span>
-            max <strong>{stato.rosa.massimoSostenibile}</strong>
-          </span>
-        </span>
-        {!config.bloccata && (
-          <button className="tab" onClick={() => setModifica(true)}>
-            Configurazione
-          </button>
+        ) : (
+          <span className="stato-barra muted">asta non ancora configurata</span>
         )}
       </nav>
       {pagina === 'asta' ? (
-        <Asta stato={stato} onStato={setStato} />
+        <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} />
       ) : (
         <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />
       )}

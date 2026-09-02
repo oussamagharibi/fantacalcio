@@ -28,5 +28,9 @@ export const postUscita = (playerId) => invia('/api/usciti', { playerId });
 export const postAnnulla = () => invia('/api/annulla', {});
 export const postTarget = (playerId) => invia('/api/target', { playerId });
 
+/** Azzera l'asta: cancella tutti gli acquisti. Chi la chiama deve gia' aver
+ *  chiesto conferma - qui non c'e' rete di sicurezza. */
+export const postReset = () => invia('/api/reset', {});
+
 export const postGeneraAnalisi = (conferma) => invia('/api/news/genera', { conferma });
 export const getStatoAnalisi = () => json('/api/news/stato');

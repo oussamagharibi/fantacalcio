@@ -4,6 +4,8 @@ import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import { percentuale, perSlot, proiezionePrezzo } from './budget.js';
 import Carriera from './Carriera.jsx';
+import Preparazione from './Preparazione.jsx';
+import { postReset } from './api.js';
 
 const MIN_LETTERE = 3;
 const MAX_RISULTATI = 9;
@@ -22,7 +24,11 @@ function ChipSegnale({ s }) {
   return <span className={titolare ? 'chip tit' : 'chip panca'} title={s.testo}>{titolare ? `titolare ${perc ?? ''}%` : `panchina ${perc ?? ''}%`}</span>;
 }
 
-export default function Asta({ stato, onStato }) {
+export default function Asta({ stato, onStato, config, onRicarica }) {
+  /** Dopo un reset la configurazione resta in archivio ma gli acquisti no:
+   *  si torna comunque alla preparazione, perche' "Nuova asta" vuol dire
+   *  ricominciare, non riprendere con gli stessi numeri. */
+  const [riprepara, setRiprepara] = useState(false);
   const [cerca, setCerca] = useState('');
   /** Il lotto in corso vive solo qui: non e' un dato dell'asta finche' non si
    *  decide, e persisterlo vorrebbe dire doverlo anche ripulire. */
@@ -88,6 +94,27 @@ export default function Asta({ stato, onStato }) {
           : `annullato: ${r.annullata.nome} torna in lista`
     );
 
+  /** Cancella TUTTI gli acquisti: si chiede conferma per esteso, perche' e'
+   *  l'unica azione dell'applicazione che butta via dati senza un annulla. */
+  async function nuovaAsta() {
+    const quanti = stato.rosa.presi.length;
+    const messaggio =
+      quanti > 0
+        ? `Nuova asta: cancella i ${quanti} acquisti registrati e riapre la preparazione.
+
+L'operazione non si annulla. Procedere?`
+        : 'Nuova asta: riapre la schermata di preparazione. Procedere?';
+    if (!window.confirm(messaggio)) return;
+    try {
+      await postReset();
+      setRiprepara(true);
+      await onRicarica();
+      avvisa(quanti > 0 ? `asta azzerata: ${quanti} acquisti cancellati` : 'preparazione riaperta');
+    } catch (e) {
+      avvisa(e.message, 'ko');
+    }
+  }
+
   const apri = (g) => {
     setLotto(g);
     setPrezzo('');
@@ -138,6 +165,20 @@ export default function Asta({ stato, onStato }) {
   const totalePerRuolo = (ruolo) => stato.restanti.filter((x) => x.ruolo === ruolo).reduce((s, x) => s + x.n, 0);
   const perFascia = (ruolo, f) => stato.restanti.filter((x) => x.ruolo === ruolo && x.fascia === f).reduce((s, x) => s + x.n, 0);
   const massimoRuolo = Math.max(1, ...ORDINE_RUOLI.map(totalePerRuolo));
+
+  /** La preparazione non ricompare mai con acquisti registrati: la config e'
+   *  congelata dal primo acquisto e riaprirla darebbe l'idea di poterla
+   *  cambiare a meta' asta. */
+  if ((!config.configurata || riprepara) && config.acquisti === 0)
+    return (
+      <Preparazione
+        iniziale={config.config}
+        onIniziata={() => {
+          setRiprepara(false);
+          onRicarica();
+        }}
+      />
+    );
 
   return (
     <div className="asta-griglia">
@@ -205,6 +246,10 @@ export default function Asta({ stato, onStato }) {
             </div>
           );
         })}
+
+        <button className="bottone neutro nuova-asta" onClick={nuovaAsta}>
+          Nuova asta
+        </button>
       </aside>
 
       {/* -------------------------------------------- centro: ricerca e lotto */}

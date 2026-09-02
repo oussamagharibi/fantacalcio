@@ -279,6 +279,21 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .banner { border: 1px solid var(--oro); border-radius: var(--r); padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
 .banner code { background: #10131a; border-radius: 4px; padding: 1px 5px; font-family: inherit; }
 
+/* --------------------------------------------- preparazione e sezione dati */
+.preparazione { display: flex; justify-content: center; padding: 26px 18px; }
+.prep-riquadro { max-width: 720px; width: 100%; }
+.prep-riquadro h2 { font-size: 20px; margin-bottom: 4px; }
+.prep-riquadro form { margin-top: 16px; }
+.etichetta-ruolo { display: flex; align-items: center; gap: 6px; }
+.etichetta-ruolo i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+.nuova-asta { width: 100%; margin-top: 6px; }
+.dati { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 18px; }
+.dati > h2 { font-size: 18px; margin-bottom: 12px; }
+.blocco-dati { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 16px; }
+.blocco-dati h3 { font-size: 15px; margin-bottom: 4px; }
+.blocco-dati .bottone { margin-top: 10px; }
+.blocco-dati .avanzamento { margin-top: 12px; }
+
 /* ------------------------------------------------------------- responsive */
 /* Sotto i 900px le tre zone si impilano, con ricerca e lotto SEMPRE in cima:
    durante l'asta e' l'unica cosa che deve stare sotto le dita. */

@@ -182,13 +182,7 @@ export default function Analisi({ stato, onStato, onRicarica }) {
         <button className={`chip${soloTarget ? ' on' : ''}`} onClick={() => setSoloTarget((v) => !v)}>
           ★ obiettivi
         </button>
-        <span className="spazio" />
-        <button className="bottone" onClick={genera} disabled={batch.inCorso}>
-          {batch.inCorso ? 'Analisi in corso…' : 'Genera analisi AI'}
-        </button>
       </div>
-
-      {(batch.inCorso || batch.righe.length > 0) && <pre className="avanzamento">{batch.righe.slice(-12).join('\n')}</pre>}
 
       {visibili.length === 0 ? (
         <p className="muted">Nessun giocatore con questi filtri.</p>
@@ -200,7 +194,26 @@ export default function Analisi({ stato, onStato, onRicarica }) {
         </div>
       )}
 
-      <UploadListone />
+      {/* Sezione Dati: sta qui e non nella configurazione perche' deve
+          restare raggiungibile sempre, anche a config bloccata o assente. */}
+      <section className="dati">
+        <h2>Dati</h2>
+        <UploadListone />
+
+        <div className="blocco-dati">
+          <h3>Analisi AI</h3>
+          <p className="muted">
+            Legge le notizie delle fonti attive e scrive una nota per giocatore. Da lanciare prima dell'asta: fa
+            richieste di rete lente.
+          </p>
+          <button className="bottone" onClick={genera} disabled={batch.inCorso}>
+            {batch.inCorso ? 'Analisi in corso…' : 'Genera analisi AI'}
+          </button>
+          {(batch.inCorso || batch.righe.length > 0) && (
+            <pre className="avanzamento">{batch.righe.slice(-12).join('\n')}</pre>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
