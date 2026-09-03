@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { postTarget, postGeneraAnalisi, getStatoAnalisi, getStato } from './api.js';
+import { postTarget, postGeneraAnalisi, getStatoAnalisi, getStato, uploadStats, uploadXg } from './api.js';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
+import UploadFonte from './UploadFonte.jsx';
 import Carriera from './Carriera.jsx';
 import Xg from './Xg.jsx';
 
@@ -208,7 +209,60 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
           restare raggiungibile sempre, anche a config bloccata o assente. */}
       <section className="dati">
         <h2>Dati</h2>
-        <UploadListone />
+        <UploadListone onImportato={onRicarica} />
+
+        <UploadFonte
+          titolo="Statistiche storiche"
+          descrizione="Gli Excel delle statistiche di fantacalcio.it, uno per stagione. Sono i dati di FANTACALCIO: media voto e fantamedia. Servono al punteggio in stelle, e per i portieri sono l'unica base possibile."
+          accept=".xlsx"
+          attesi="File stats-2025-26.xlsx e stats-2024-25.xlsx"
+          invia={uploadStats}
+          onImportato={onRicarica}
+          risultato={(e) => (
+            <>
+              <p>
+                <strong>{e.coperti} giocatori</strong> con almeno una stagione in archivio
+              </p>
+              {e.stagioni.map((s) => (
+                <p key={s.stagione} className="muted">
+                  <strong>{s.stagione}</strong> da {s.nomeFile} &middot; foglio "{s.foglio}" &middot; {s.righeLette} righe
+                  lette &middot; {s.inserite} inserite &middot; {s.aggiornate} aggiornate
+                  {s.scartate > 0 && <> &middot; {s.scartate} scartate</>}
+                  {s.senzaGiocatore > 0 && <> &middot; {s.senzaGiocatore} senza giocatore nel listone</>}
+                </p>
+              ))}
+            </>
+          )}
+        />
+
+        <UploadFonte
+          titolo="Expected goals"
+          descrizione="Le esportazioni json di Understat, una per stagione. Sono dati di CALCIO VERO, non fanta: quanto valevano le occasioni avute. Understat vieta il download automatico (robots.txt), quindi i file si salvano dal browser."
+          accept=".json,.csv"
+          attesi="File serie_a_2025.json e serie_a_2024.json"
+          invia={uploadXg}
+          onImportato={onRicarica}
+          risultato={(e) => (
+            <>
+              {e.stagioni.map((s) => (
+                <p key={s.stagione} className="muted">
+                  <strong>{s.stagione}</strong> da {s.nomeFile} &middot; {s.righeFile} righe nel file &middot;{' '}
+                  <strong>{s.abbinati}</strong> abbinati su {e.giocatori}
+                  {s.ambigui > 0 && <> &middot; {s.ambigui} scartati per ambiguita'</>}
+                  {s.campiMancanti.length > 0 && (
+                    <> &middot; campi assenti: {s.campiMancanti.join(', ')}</>
+                  )}
+                </p>
+              ))}
+              {e.orfane.length > 0 && (
+                <p className="avviso">
+                  In archivio restano stagioni senza file caricato:{' '}
+                  {e.orfane.map((o) => `${o.stagione} (${o.n} righe)`).join(', ')}. Nessuno le aggiornera' piu'.
+                </p>
+              )}
+            </>
+          )}
+        />
 
         <div className="blocco-dati">
           <h3>Analisi AI</h3>

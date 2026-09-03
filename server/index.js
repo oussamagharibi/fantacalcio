@@ -14,6 +14,8 @@ import {
   annullaGiocatore,
   commutaTarget,
 } from './lib/asta.js';
+import { salvaEImportaStats } from './lib/stats.js';
+import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -36,7 +38,13 @@ const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
  *  stesso e serve solo le API, invece di rifiutarsi di avviarsi. */
 if (CLIENT_BUILDATO) app.register(fastifyStatic, { root: DIST, wildcard: false });
 
-app.register(fastifyMultipart, { limits: { fileSize: LIMITE_UPLOAD_MB * 1024 * 1024, files: 1 } });
+/** files: statistiche e xG si caricano due stagioni alla volta, quindi uno solo
+ *  non basta piu'. Il tetto resta basso: nessuna fonte ne chiede piu' di due, e
+ *  un limite aperto vorrebbe dire accettare un upload qualsiasi. */
+const MAX_FILE = 4;
+app.register(fastifyMultipart, {
+  limits: { fileSize: LIMITE_UPLOAD_MB * 1024 * 1024, files: MAX_FILE },
+});
 
 /** Il routing del client e' lato browser: ogni path non-API deve restituire
  *  index.html, altrimenti un refresh su una schermata interna darebbe 404. */
@@ -120,6 +128,69 @@ app.post('/api/listone/upload', async (req, reply) => {
       return reply.code(400).send({ error: e.message, ...(e.righeGrezze ? { righeGrezze: e.righeGrezze } : {}) });
     }
     throw e;
+  }
+});
+
+/** Piu' file in una richiesta sola: le due stagioni si caricano insieme.
+ *  I buffer si consumano uno per uno mentre si scorre, com'e' richiesto da
+ *  multipart: saltare una parte senza leggerla blocca il flusso. */
+async function fileCaricati(req) {
+  const out = [];
+  for await (const parte of req.files()) out.push({ nomeFile: parte.filename, buf: await parte.toBuffer() });
+  return out;
+}
+
+/** Errore di upload: il file sbagliato lo manda il client, quindi 400.
+ *  413 solo quando ha davvero passato il limite di dimensione. */
+function rispondiUpload(reply, req, e, cosa) {
+  if (e?.code === 'FST_REQ_FILE_TOO_LARGE')
+    return reply.code(413).send({ error: `file troppo grande: il limite e' ${LIMITE_UPLOAD_MB} MB` });
+  if (e?.code === 'FST_FILES_LIMIT')
+    return reply.code(413).send({ error: `troppi file: al massimo ${MAX_FILE} per richiesta` });
+  if (e instanceof ErroreListone || e instanceof ErroreXg) {
+    req.log.warn({ err: e }, `upload ${cosa} rifiutato`);
+    return reply.code(400).send({ error: e.message, ...(e.righeGrezze ? { righeGrezze: e.righeGrezze } : {}) });
+  }
+  throw e;
+}
+
+/** Statistiche storiche: gli xlsx di Fantacalcio.it, uno per stagione.
+ *  Stesse difese del listone - dimensione minima, magic number, backup del file
+ *  e del db prima di sovrascrivere - e stesso import di npm run import-stats. */
+app.post('/api/stats/upload', async (req, reply) => {
+  let caricati;
+  try {
+    caricati = await fileCaricati(req);
+  } catch (e) {
+    return rispondiUpload(reply, req, e, 'statistiche');
+  }
+  if (!caricati.length) return reply.code(400).send({ error: "nessun file ricevuto: serve un multipart con uno o piu' campi file" });
+  try {
+    const r = salvaEImportaStats(caricati);
+    req.log.info({ stagioni: r.stagioni.map((x) => x.stagione), coperti: r.coperti }, 'statistiche caricate');
+    return r;
+  } catch (e) {
+    return rispondiUpload(reply, req, e, 'statistiche');
+  }
+});
+
+/** Expected goals: le esportazioni json di Understat, una per stagione.
+ *  Understat non e' scaricabile in automatico (robots.txt vieta tutto il sito),
+ *  quindi questa e' la via normale, non un ripiego. */
+app.post('/api/xg/upload', async (req, reply) => {
+  let caricati;
+  try {
+    caricati = await fileCaricati(req);
+  } catch (e) {
+    return rispondiUpload(reply, req, e, 'xG');
+  }
+  if (!caricati.length) return reply.code(400).send({ error: "nessun file ricevuto: serve un multipart con uno o piu' campi file" });
+  try {
+    const r = salvaEImportaXg(caricati);
+    req.log.info({ stagioni: r.stagioni.map((x) => x.stagione) }, 'xG caricati');
+    return r;
+  } catch (e) {
+    return rispondiUpload(reply, req, e, 'xG');
   }
 });
 

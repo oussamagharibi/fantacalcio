@@ -20,6 +20,16 @@ export function uploadListone(file) {
   return json('/api/listone/upload', { method: 'POST', body: dati });
 }
 
+/** Statistiche storiche ed expected goals: piu' file in una richiesta sola,
+ *  uno per stagione. Il campo si chiama sempre "file", come per il listone. */
+const uploadPiu = (url, files) => {
+  const dati = new FormData();
+  for (const f of files) dati.append('file', f);
+  return json(url, { method: 'POST', body: dati });
+};
+export const uploadStats = (files) => uploadPiu('/api/stats/upload', files);
+export const uploadXg = (files) => uploadPiu('/api/xg/upload', files);
+
 /** Stato completo: giocatori, rosa, contatori. Le azioni dell'asta lo
  *  restituiscono gia' aggiornato, cosi' una registrazione e' un round trip solo. */
 export const getStato = () => json('/api/stato');

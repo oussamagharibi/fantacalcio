@@ -1,4 +1,6 @@
-import { getDb, tx } from '../db.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { getDb, tx, backup, perLog, DATA_DIR } from '../db.js';
 import { normalizza } from './testo.js';
 import { inizialiCombaciano } from './wiki.js';
 
@@ -378,3 +380,91 @@ export function estremiScarto(stagione, quanti = 5, minutiMinimi = 450) {
 
 export const stagioniInArchivio = () =>
   getDb().prepare('SELECT stagione, count(*) AS n FROM xg GROUP BY stagione ORDER BY stagione').all();
+
+// ------------------------------------------------------------------- upload
+
+/** Un'esportazione di Understat con 500 giocatori pesa decine di KB. Sotto
+ *  questa soglia e' un file sbagliato, non una stagione povera. */
+const DIMENSIONE_MINIMA = 2 * 1024;
+export const CARTELLA = path.join(DATA_DIR, 'understat');
+
+export class ErroreXg extends Error {
+  constructor(m) {
+    super(m);
+    this.name = 'ErroreXg';
+  }
+}
+
+/** A quale stagione appartiene un file caricato: dall'anno nel nome, come fa
+ *  la CLI. "serie_a_2025.json" -> 2025-2026. */
+export function stagioneDelNome(nomeFile) {
+  const m = /(20\d{2})/.exec(String(nomeFile ?? ''));
+  return m ? { anno: m[1], stagione: stagioneDa(m[1]) } : null;
+}
+
+/** Carica uno o piu' file Understat, li salva in /data/understat e importa.
+ *  Come per le statistiche si legge e si abbina TUTTO prima di scrivere: se il
+ *  secondo file e' illeggibile non si resta a meta'. */
+export function salvaEImportaXg(caricati) {
+  if (!caricati.length) throw new ErroreXg('nessun file ricevuto');
+
+  const giocatori = getDb()
+    .prepare('SELECT id, nome, squadra, ruolo FROM players WHERE assente_dal IS NULL')
+    .all();
+
+  const pronti = caricati.map(({ buf, nomeFile }) => {
+    const dove = `"${nomeFile}"`;
+    if (buf.length < DIMENSIONE_MINIMA)
+      throw new ErroreXg(`${dove} pesa ${buf.length} byte (minimo ${DIMENSIONE_MINIMA}): scartato, l'archivio non e' stato toccato.`);
+    const s = stagioneDelNome(nomeFile);
+    if (!s) throw new ErroreXg(`${dove}: non c'e' un anno nel nome. Attesi nomi come serie_a_2025.json.`);
+    const { righe: grezze, formato, motivo } = leggiContenuto(buf.toString('utf8'));
+    if (!grezze) throw new ErroreXg(`${dove}: non riesco a leggerlo — ${motivo}`);
+    const righe = grezze.map(normalizzaRiga).filter(Boolean);
+    if (!righe.length) throw new ErroreXg(`${dove}: nessuna riga con un nome di giocatore.`);
+    return { buf, nomeFile, formato, righe, ...s, ...abbina(giocatori, righe) };
+  });
+
+  const doppie = pronti.map((p) => p.stagione).filter((x, i, a) => a.indexOf(x) !== i);
+  if (doppie.length) throw new ErroreXg(`due file per la stessa stagione (${doppie.join(', ')}): caricane uno solo per stagione.`);
+
+  const backupDb = backup('pre-upload-xg');
+  const esiti = [];
+  for (const p of pronti) {
+    fs.mkdirSync(CARTELLA, { recursive: true });
+    const destinazione = path.join(CARTELLA, `serie_a_${p.anno}.json`);
+    let backupFile = null;
+    if (fs.existsSync(destinazione)) {
+      const dir = path.join(DATA_DIR, 'backups');
+      fs.mkdirSync(dir, { recursive: true });
+      const dest = path.join(dir, `serie_a_${p.anno}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+      fs.copyFileSync(destinazione, dest);
+      backupFile = perLog(dest);
+    }
+    fs.writeFileSync(destinazione, p.buf);
+    // Fotografia della stagione: le righe si riscrivono, non si accumulano.
+    const scritte = salvaXg(p.stagione, p.abbinati);
+    esiti.push({
+      nomeFile: p.nomeFile,
+      stagione: p.stagione,
+      formato: p.formato,
+      righeFile: p.righe.length,
+      abbinati: p.abbinati.length,
+      ambigui: p.ambigui.length,
+      dettaglioAmbigui: p.ambigui.map((a) => ({
+        nome: a.giocatore.nome,
+        squadra: a.giocatore.squadra,
+        candidati: a.candidati.map((c) => `${c.nome} [${c.squadra}]`),
+      })),
+      senzaRiscontro: p.senzaCandidati.length,
+      campiMancanti: campiMancanti(p.righe),
+      scritte,
+      backupFile,
+    });
+  }
+  // Le stagioni rimaste senza un file caricato si segnalano: sono righe vecchie
+  // che nessuno aggiornera' piu', ed e' bene saperlo invece di scoprirle dopo.
+  const caricate = new Set(esiti.map((e) => e.stagione));
+  const orfane = stagioniInArchivio().filter((s) => !caricate.has(s.stagione));
+  return { backupDb, stagioni: esiti, orfane, giocatori: giocatori.length };
+}

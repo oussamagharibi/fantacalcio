@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import { getDb, tx, backup, DATA_DIR } from '../db.js';
+import { getDb, tx, backup, perLog, DATA_DIR } from '../db.js';
 import { ErroreFoglio, apriFoglio, indiciColonne, intero, decimale } from './foglio.js';
 
 /** Le stagioni da importare, in ordine di interesse. Il nome del file e' quello
@@ -186,4 +186,85 @@ export function statsPerGiocatore() {
     per.get(r.player_id).push(r);
   }
   return per;
+}
+
+// ------------------------------------------------------------------- upload
+
+/** Stesse difese del listone: un file troppo piccolo o che non e' un xlsx non
+ *  entra nemmeno in lettura, e quello che c'e' in archivio resta dov'e'. */
+const MAGIC_ZIP = Buffer.from([0x50, 0x4b, 0x03, 0x04]); // PK\x03\x04
+const DIMENSIONE_MINIMA = 10 * 1024;
+
+/** A quale stagione appartiene un file caricato. Si guarda il nome, che e'
+ *  quello con cui Fantacalcio.it lo fa scaricare. Se non si riconosce si
+ *  rifiuta: scrivere una stagione sotto l'etichetta sbagliata e' peggio che
+ *  non scriverla. */
+export function stagioneDelFile(nomeFile) {
+  const b = path.basename(String(nomeFile ?? '')).toLowerCase();
+  return (
+    STAGIONI.find((s) => s.file.toLowerCase() === b) ??
+    STAGIONI.find((s) => b.includes(s.stagione)) ??
+    null
+  );
+}
+
+/** Carica uno o piu' file di statistiche, li salva in /data e importa.
+ *  Si valida e si legge TUTTO prima di scrivere qualsiasi cosa: se il secondo
+ *  file e' sbagliato non si resta con il primo importato e l'altro no. */
+export function salvaEImportaStats(caricati) {
+  if (!caricati.length) throw new ErroreFoglio('nessun file ricevuto');
+
+  const pronti = caricati.map(({ buf, nomeFile }) => {
+    const dove = `"${nomeFile}"`;
+    if (buf.length < DIMENSIONE_MINIMA)
+      throw new ErroreFoglio(
+        `${dove} pesa ${buf.length} byte (minimo ${DIMENSIONE_MINIMA}): scartato, l'archivio non e' stato toccato.`
+      );
+    if (!buf.subarray(0, 4).equals(MAGIC_ZIP)) {
+      const magic = [...buf.subarray(0, 4)].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+      throw new ErroreFoglio(
+        `${dove} non e' un xlsx (magic number ${magic}, atteso 50 4b 03 04): scartato, l'archivio non e' stato toccato.`
+      );
+    }
+    const s = stagioneDelFile(nomeFile);
+    if (!s)
+      throw new ErroreFoglio(
+        `${dove}: non capisco a quale stagione appartiene. I nomi attesi sono ${STAGIONI.map((x) => x.file).join(' e ')}.`
+      );
+    // leggere qui vuol dire fallire prima di aver scritto niente
+    return { buf, nomeFile, ...s, letto: leggiStats(buf, s.stagione) };
+  });
+
+  const doppie = pronti.map((p) => p.stagione).filter((x, i, a) => a.indexOf(x) !== i);
+  if (doppie.length) throw new ErroreFoglio(`due file per la stessa stagione (${doppie.join(', ')}): caricane uno solo per stagione.`);
+
+  const backupDb = backup('pre-upload-stats');
+  const esiti = [];
+  for (const p of pronti) {
+    const destinazione = path.join(DATA_DIR, p.file);
+    let backupFile = null;
+    if (fs.existsSync(destinazione)) {
+      const dir = path.join(DATA_DIR, 'backups');
+      fs.mkdirSync(dir, { recursive: true });
+      const dest = path.join(dir, `${path.basename(p.file, '.xlsx')}-${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`);
+      fs.copyFileSync(destinazione, dest);
+      backupFile = perLog(dest);
+    }
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(destinazione, p.buf);
+    const r = importaStagione(p.letto);
+    esiti.push({
+      nomeFile: p.nomeFile,
+      stagione: r.stagione,
+      foglio: r.foglio,
+      righeLette: r.righeLette,
+      inserite: r.inserite,
+      aggiornate: r.aggiornate,
+      scartate: r.scartateRiga.length,
+      senzaGiocatore: r.senzaGiocatore.length,
+      inDb: r.inDb,
+      backupFile,
+    });
+  }
+  return { backupDb, stagioni: esiti, coperti: getDb().prepare('SELECT count(DISTINCT player_id) AS n FROM stats').get().n };
 }
