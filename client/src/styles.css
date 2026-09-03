@@ -368,6 +368,21 @@ input[type='file'] { padding: 6px; cursor: pointer; }
    l'asta, non l'applicazione. */
 .az-avviso { color: var(--oro); font-size: 11px; white-space: nowrap; }
 
+/* Zone di rilascio: presenti sempre, ma spente finche' non si trascina, cosi'
+   non rubano attenzione a chi usa i pulsanti. */
+.rilascio { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
+.rilascio-zona {
+  border: 1px dashed var(--line); border-radius: var(--r); padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 2px; opacity: 0.55;
+  transition: opacity var(--media), border-color var(--media), background var(--media);
+}
+.rilascio.in-corso .rilascio-zona { opacity: 1; border-color: var(--muted); }
+.rilascio.in-corso .rilascio-zona.sopra { border-color: var(--acc); background: rgba(78, 161, 255, 0.12); }
+.rilascio-zona.spenta { opacity: 0.3; }
+.rilascio .muted { font-size: 11.5px; }
+.tabella-situazione tr.riga-libera { cursor: grab; }
+.tabella-situazione tr.si-trascina { opacity: 0.45; }
+
 
 /* ---------------------------------------------------- pagina situazione */
 .riepilogo-situazione { display: grid; gap: 12px; margin-bottom: 16px; }
@@ -388,11 +403,80 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 /* ------------------------------------------------------------- responsive */
 /* Sotto i 900px le tre zone si impilano, con ricerca e lotto SEMPRE in cima:
    durante l'asta e' l'unica cosa che deve stare sotto le dita. */
+/* --------------------------------------------- pagina dettaglio giocatore */
+/* Il nome e' un pulsante, non un <a>: la navigazione e' sull'hash e passa
+   da una funzione, ma deve leggersi e comportarsi come un link. */
+.link-nome {
+  background: transparent; color: inherit; padding: 0; font: inherit; text-align: left;
+  border-bottom: 1px dotted transparent; border-radius: 0;
+  transition: color var(--veloce), border-color var(--veloce);
+}
+.link-nome:hover { color: var(--acc); border-bottom-color: var(--acc); }
+
+.dettaglio { padding-bottom: 40px; }
+.det-indietro {
+  background: transparent; color: var(--muted); padding: 4px 0; font-size: 13px; font-weight: 600;
+  margin-bottom: 12px;
+}
+.det-indietro:hover { color: var(--fg); }
+.det-testa {
+  display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px; margin-bottom: 16px;
+}
+.det-testa h2 { font-size: 24px; }
+.det-sotto { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; color: var(--muted); font-size: 13px; }
+
+.det-punteggio { margin-left: auto; min-width: 260px; }
+.det-punteggio.vuoto { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.det-perche { font-size: 11.5px; }
+.det-voto { display: flex; align-items: baseline; gap: 8px; }
+.det-voto strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+.det-stelle { display: inline-flex; gap: 3px; align-items: center; }
+.det-stelle i {
+  width: 13px; height: 13px; display: block; border-radius: 3px;
+  background: #2b3140; border: 1px solid var(--line);
+}
+.det-stelle i.piena { background: var(--oro); border-color: var(--oro); }
+/* mezza stella: meta' oro e meta' spenta, perche' i bonus valgono 0.5 e 0.3 */
+.det-stelle i.mezza { background: linear-gradient(90deg, var(--oro) 50%, #2b3140 50%); border-color: var(--oro); }
+.det-conto { margin-top: 8px; background: #10131a; border-radius: 8px; padding: 9px 10px; font-size: 12px; }
+.det-conto table { border-collapse: collapse; width: 100%; }
+.det-conto td { padding: 3px 6px; vertical-align: top; }
+.det-delta { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; width: 1%; }
+.det-somma td { border-top: 1px solid var(--line); padding-top: 6px; }
+
+.det-colonne { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); align-items: start; }
+.det-sez { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 13px 15px; }
+.det-sez h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); margin-bottom: 10px; }
+.det-fonte { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 8px; opacity: 0.75; }
+.det-dati { margin: 0; display: grid; gap: 7px; }
+.det-dati > div { display: flex; gap: 10px; align-items: baseline; }
+.det-dati dt { color: var(--muted); min-width: 140px; margin: 0; font-size: 13px; }
+.det-dati dd { margin: 0; font-weight: 600; }
+.det-dati .su { color: var(--ok); }
+.det-dati .giu { color: var(--ko); }
+.det-infortunio { flex-direction: column; }
+.det-infortunio dd { font-weight: 400; font-size: 13px; color: var(--ko); }
+.det-tab { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.det-tab th, .det-tab td { padding: 3px 7px; border-bottom: 1px solid var(--line); text-align: left; }
+.det-tab th { color: var(--muted); font-weight: 600; font-size: 11px; }
+.det-tab th.num, .det-tab td.num { text-align: right; }
+.det-tab td.forte { font-weight: 700; }
+.det-tab td.scarto.occasione { color: var(--ok); font-weight: 700; }
+.det-tab td.scarto.calo { color: var(--ko); font-weight: 700; }
+
 @media (max-width: 1400px) {
   .asta-griglia { grid-template-columns: 260px minmax(0, 1fr) 250px; gap: 12px; }
   .massimo .n { font-size: 64px; }
 }
 @media (max-width: 900px) {
+  .det-colonne { grid-template-columns: 1fr; }
+  .det-punteggio { margin-left: 0; }
+  /* Su schermo stretto trascinare dentro una tabella non funziona: via le zone.
+     I pulsanti in riga restano, e sono l'unica strada. */
+  .rilascio { display: none; }
+  .tabella-situazione tr.riga-libera { cursor: default; }
   .asta-griglia { grid-template-columns: 1fr; height: auto; padding: 12px; }
   .zona { height: auto; max-height: 340px; }
   .centro { order: -1; }

@@ -1,6 +1,6 @@
 import { getDb, tx } from '../db.js';
 import { normalizza } from './testo.js';
-import { titoloContieneCognome, inizialiCombaciano } from './wiki.js';
+import { inizialiCombaciano } from './wiki.js';
 
 /** Expected goals da Understat.
  *
@@ -114,10 +114,10 @@ const CAMPI = {
   nome: ['player_name', 'Player', 'player', 'name'],
   squadra: ['team_title', 'Team', 'team', 'club'],
   partite: ['games', 'Apps', 'apps', 'matches'],
-  minuti: ['time', 'Min', 'minutes'],
+  minuti: ['time', 'Min', 'minutes', 'min'],
   gol: ['goals', 'G', 'goals_scored'],
   xg: ['xG', 'xg', 'expected_goals'],
-  assist: ['assists', 'A', 'assist'],
+  assist: ['assists', 'A', 'assist', 'a'],
   xa: ['xA', 'xa', 'expected_assists'],
   tiri: ['shots', 'Sh', 'Shots'],
   passaggi_chiave: ['key_passes', 'KP', 'KP90'],
@@ -132,14 +132,23 @@ const primo = (r, chiavi) => {
 
 /** Understat manda i numeri come stringhe ("0.7823"). Quello che non e' un
  *  numero diventa null, non zero: "non lo so" e "zero occasioni" sono cose
- *  diverse, e sommate insieme darebbero un xG falso. */
+ *  diverse, e uno zero inventato finisce dritto in una card come se fosse un dato.
+ *  La stringa vuota va esclusa a mano: Number('') vale 0 ed e' finito, quindi
+ *  senza questo controllo ogni campo assente diventava zero. */
+const numero = (v) => {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim().replace(',', '.');
+  if (s === '') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+};
 const intero = (v) => {
-  const n = Number(String(v ?? '').replace(',', '.'));
-  return Number.isFinite(n) ? Math.round(n) : null;
+  const n = numero(v);
+  return n === null ? null : Math.round(n);
 };
 const reale = (v) => {
-  const n = Number(String(v ?? '').replace(',', '.'));
-  return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+  const n = numero(v);
+  return n === null ? null : Math.round(n * 100) / 100;
 };
 
 /** Riga grezza -> forma unica. Senza nome non e' abbinabile; senza squadra si
@@ -197,6 +206,34 @@ export function stessaSquadra(understat, listone) {
 
 // ---------------------------------------------------------------- abbinamento
 
+const senzaSegni = (s) => normalizza(s).replace(/['ʻ’]/g, '');
+
+/** Il cognome deve combaciare a CONFINE DI PAROLA, non essere una sottostringa
+ *  qualsiasi. Con includes() "Obert" si trovava dentro "R[obert]o Piccoli" e
+ *  "Valenti" dentro "Mihai [Valenti]n Mihaila": due compagni di squadra, quindi
+ *  il guardiano della squadra passava, e i due veri Obert e Valenti finivano
+ *  scartati per ambiguita'.
+ *  Si confrontano sequenze di parole intere, cosi' reggono anche i cognomi
+ *  composti ("de Roon", "Bella-Kotchap", "El Azzouzi").
+ *  In wiki.js la funzione larga resta com'e': li' si confronta il TITOLO di una
+ *  pagina, e la larghezza serve a far passare "Hakan Calhanoglu". */
+export function cognomeCombacia(nomeUnderstat, cognome) {
+  const parole = senzaSegni(nomeUnderstat).split(/[\s-]+/).filter(Boolean);
+  const cerca = senzaSegni(cognome).split(/[\s-]+/).filter(Boolean);
+  if (!cerca.length) return false;
+  for (let i = 0; i + cerca.length <= parole.length; i++)
+    if (cerca.every((x, k) => parole[i + k] === x)) return true;
+  return false;
+}
+
+/** Understat scrive certi giocatori con una parola sola ("Vitinha", "Ederson").
+ *  Li' non c'e' un nome proprio contro cui confrontare l'abbreviazione del
+ *  listone: il guardiano non ha niente da dire e si salta. Squadra e cognome
+ *  intero bastano, e se restassero due candidati l'ambiguita' li scarterebbe. */
+export const mononimo = (nome) => senzaSegni(nome).split(/[\s-]+/).filter(Boolean).length === 1;
+export const inizialeCompatibile = (nomeUnderstat, nomeListone) =>
+  mononimo(nomeUnderstat) || inizialiCombaciano(nomeUnderstat, nomeListone);
+
 /** Il cognome come lo scrive il listone: i pezzi puntati sono iniziali del nome
  *  proprio. "Martinez L." -> "Martinez", "Esposito F.P." -> "Esposito". */
 export const cognomeDi = (nome) =>
@@ -217,8 +254,8 @@ export function candidati(giocatore, righe) {
   return righe.filter(
     (r) =>
       stessaSquadra(r.squadra, giocatore.squadra) &&
-      titoloContieneCognome(r.nome, cognome) &&
-      inizialiCombaciano(r.nome, giocatore.nome)
+      cognomeCombacia(r.nome, cognome) &&
+      inizialeCompatibile(r.nome, giocatore.nome)
   );
 }
 
@@ -300,11 +337,22 @@ const SELECT_XG = `SELECT player_id, stagione, squadra, partite, minuti, gol, xg
  *  Come la carriera viaggia dentro lo stato: durante l'asta non si fanno
  *  chiamate di rete, quindi quando si apre un lotto il dato dev'essere gia' li'. */
 export function xgPerGiocatore() {
-  const righe = getDb()
-    .prepare(`${SELECT_XG} ORDER BY player_id, CAST(substr(stagione, 1, 4) AS INTEGER)`)
-    .all();
   const per = new Map();
-  for (const r of righe) per.set(r.player_id, r); // l'ordine lascia in mano l'ultima
+  for (const r of tutteLeRighe()) per.set(r.player_id, r); // l'ordine lascia in mano l'ultima
+  return per;
+}
+
+const tutteLeRighe = () =>
+  getDb().prepare(`${SELECT_XG} ORDER BY player_id, CAST(substr(stagione, 1, 4) AS INTEGER)`).all();
+
+/** Tutte le stagioni di ogni giocatore, dalla piu' vecchia alla piu' recente:
+ *  la pagina dettaglio le mostra in fila, non solo l'ultima. */
+export function xgStagioniPerGiocatore() {
+  const per = new Map();
+  for (const r of tutteLeRighe()) {
+    if (!per.has(r.player_id)) per.set(r.player_id, []);
+    per.get(r.player_id).push(r);
+  }
   return per;
 }
 

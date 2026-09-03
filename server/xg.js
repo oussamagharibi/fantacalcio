@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { getDb, DATA_DIR } from './db.js';
+import { getDb, backup, perLog, DATA_DIR } from './db.js';
 import { permesso, scarica, ErroreHttp } from './lib/web.js';
 import {
   FONTE,
@@ -85,11 +85,28 @@ function istruzioni() {
   log(`  3. metti il file in ${CARTELLA} con l'anno nel nome, per esempio serie_a_2025.json`);
   log('  4. rilancia npm run xg');
   log('Vale anche per /2024. Con --file <percorso> --stagione 2025 si legge un file qualsiasi.');
+  log('Con --azzera si svuota xg prima di ricominciare (fa un backup).');
 }
 
 // ------------------------------------------------------------------ esecuzione
 
 const db = getDb();
+
+/** --azzera: via tutte le righe di xg prima di ricominciare. Serve quando le
+ *  righe in archivio sono state scritte da una versione precedente del lettore,
+ *  o quando restano stagioni di cui non si ha piu' il file: un upsert le
+ *  aggiornerebbe soltanto dove ripassa, lasciando indietro le altre.
+ *  Con backup, perche' cancellare va fatto potendo tornare indietro. */
+if (ha('--azzera')) {
+  const prima = db.prepare('SELECT stagione, count(*) AS n FROM xg GROUP BY stagione ORDER BY stagione').all();
+  if (prima.length) {
+    const copia = backup('pre-azzera-xg');
+    log(`backup in ${perLog(copia)}`);
+    for (const s of prima) log(`  tolgo ${s.n} righe della stagione ${s.stagione}`);
+    log(`righe cancellate: ${db.prepare('DELETE FROM xg').run().changes}`);
+  } else log('xg era gia vuota');
+}
+
 const giocatori = db
   .prepare('SELECT id, nome, squadra, ruolo, quotazione FROM players WHERE assente_dal IS NULL ORDER BY nome')
   .all();

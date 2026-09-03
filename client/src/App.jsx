@@ -4,23 +4,49 @@ import Analisi from './Analisi.jsx';
 import Listone from './Listone.jsx';
 import Situazione from './Situazione.jsx';
 import Asta from './Asta.jsx';
+import Giocatore from './Giocatore.jsx';
 
-/** Routing sull'hash invece di una libreria: due pagine non giustificano una
- *  dipendenza, e l'hash sopravvive al refresh senza toccare il server. */
+/** Routing sull'hash invece di una libreria: cinque schermate non giustificano
+ *  una dipendenza, e l'hash sopravvive al refresh senza toccare il server.
+ *  #/giocatore/123 e' l'unica rotta con un parametro. */
 const PAGINE = ['analisi', 'listone', 'situazione', 'asta'];
-const paginaDaHash = () => {
+const rottaDaHash = () => {
   const h = window.location.hash.replace('#/', '');
-  return PAGINE.includes(h) ? h : 'analisi';
+  const m = /^giocatore\/(\d+)$/.exec(h);
+  if (m) return { pagina: 'giocatore', id: Number(m[1]) };
+  return { pagina: PAGINE.includes(h) ? h : 'analisi', id: null };
 };
+
+/** I filtri di ogni pagina stanno qui e non dentro le pagine. Aprire la scheda
+ *  di un giocatore smonta la lista da cui si e' partiti: con i filtri in uno
+ *  stato locale, il pulsante indietro avrebbe riportato a una vista azzerata. */
+const FILTRI_INIZIALI = {
+  analisi: { reparto: 'P', fascia: null, soloSegnali: false, soloTarget: false },
+  listone: {
+    ordine: { chiave: 'quotazione', crescente: false },
+    ruolo: null,
+    squadra: '',
+    fascia: null,
+    cerca: '',
+    soloAttivi: true,
+  },
+  situazione: { stato: null, ruolo: null, squadra: '', fascia: null, cerca: '' },
+};
+
+const NOMI = { analisi: 'Analisi', listone: 'Listone', situazione: 'Situazione', asta: 'Asta' };
 
 export default function App() {
   const [config, setConfig] = useState(null);
   const [stato, setStato] = useState(null);
   const [errore, setErrore] = useState(null);
-  const [pagina, setPagina] = useState(paginaDaHash);
+  const [rotta, setRotta] = useState(rottaDaHash);
+  const [filtri, setFiltri] = useState(FILTRI_INIZIALI);
+  /** Da dove si e' arrivati alla scheda: il pulsante indietro ci riporta, e la
+   *  pagina ritrova i suoi filtri perche' vivono qui sopra. */
+  const [provenienza, setProvenienza] = useState('analisi');
 
   useEffect(() => {
-    const cambio = () => setPagina(paginaDaHash());
+    const cambio = () => setRotta(rottaDaHash());
     window.addEventListener('hashchange', cambio);
     return () => window.removeEventListener('hashchange', cambio);
   }, []);
@@ -50,11 +76,25 @@ export default function App() {
       </main>
     );
 
-  const vai = (p) => {
-    window.location.hash = `#/${p}`;
-    setPagina(p);
+  const vaiA = (hash, r) => {
+    window.location.hash = `#/${hash}`;
+    setRotta(r);
   };
+  const vai = (p) => vaiA(p, { pagina: p, id: null });
+  const apri = (id) => {
+    setProvenienza(rotta.pagina === 'giocatore' ? provenienza : rotta.pagina);
+    vaiA(`giocatore/${id}`, { pagina: 'giocatore', id });
+  };
+  const indietro = () => vai(provenienza);
+
+  const perPagina = (chiave) => ({
+    filtri: filtri[chiave],
+    onFiltri: (f) => setFiltri((s) => ({ ...s, [chiave]: f })),
+    onApri: apri,
+  });
+
   const slotTotali = Object.values(stato.rosa.slot).reduce((a, b) => a + b, 0);
+  const { pagina, id } = rotta;
 
   return (
     <>
@@ -64,7 +104,7 @@ export default function App() {
         <span className="marchio">{config.configurata ? config.config.miaSquadra : 'Asta Fantacalcio'}</span>
         {PAGINE.map((p) => (
           <button key={p} className={pagina === p ? 'tab attiva' : 'tab'} onClick={() => vai(p)}>
-            {p[0].toUpperCase() + p.slice(1)}
+            {NOMI[p]}
           </button>
         ))}
         <span className="spazio" />
@@ -84,10 +124,21 @@ export default function App() {
           <span className="stato-barra muted">asta non ancora configurata</span>
         )}
       </nav>
-      {pagina === 'asta' && <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} />}
-      {pagina === 'listone' && <Listone stato={stato} />}
-      {pagina === 'situazione' && <Situazione stato={stato} onStato={setStato} />}
-      {pagina === 'analisi' && <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} />}
+      {pagina === 'giocatore' && (
+        <Giocatore
+          g={stato.giocatori.find((x) => x.id === id) ?? null}
+          onIndietro={indietro}
+          provenienza={NOMI[provenienza]}
+        />
+      )}
+      {pagina === 'asta' && (
+        <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} onApri={apri} />
+      )}
+      {pagina === 'listone' && <Listone stato={stato} {...perPagina('listone')} />}
+      {pagina === 'situazione' && <Situazione stato={stato} onStato={setStato} {...perPagina('situazione')} />}
+      {pagina === 'analisi' && (
+        <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} {...perPagina('analisi')} />
+      )}
     </>
   );
 }

@@ -1,7 +1,8 @@
 import { getDb, tx } from '../db.js';
 import { leggiConfig } from './config.js';
 import { carrierePerGiocatore } from './wiki.js';
-import { xgPerGiocatore } from './understat.js';
+import { xgPerGiocatore, xgStagioniPerGiocatore } from './understat.js';
+import { statsPerGiocatore } from './stats.js';
 import { datiCaricamento } from './listone.js';
 
 /** Stato operativo dell'asta: chi e' ancora disponibile, la mia rosa, il
@@ -31,6 +32,10 @@ export function giocatori() {
   const carriere = carrierePerGiocatore(5);
   // Stessa ragione per gli expected goals: sono gia' qui quando si apre un lotto.
   const xg = xgPerGiocatore();
+  // La pagina dettaglio vuole tutte le stagioni, le card solo l'ultima: si
+  // portano entrambe invece di far tornare indietro il browser a chiedere.
+  const xgTutte = xgStagioniPerGiocatore();
+  const fanta = statsPerGiocatore();
   return getDb()
     .prepare(
       `SELECT p.id, p.nome, p.squadra, p.ruolo, p.quotazione, p.quotazione_iniziale, p.fvm,
@@ -54,6 +59,8 @@ export function giocatori() {
       acquistato: !!r.acquistato,
       carriera: carriere.get(r.id) ?? [],
       xg: xg.get(r.id) ?? null,
+      xgStagioni: xgTutte.get(r.id) ?? [],
+      stats: fanta.get(r.id) ?? [],
       segnali: (r.segnali ?? '')
         .split(SEP_VOCE)
         .filter(Boolean)

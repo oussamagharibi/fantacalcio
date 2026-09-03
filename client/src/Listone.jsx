@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra } from './Badge.jsx';
 import { COLONNE, differenza, filtraOrdina, prossimoOrdine } from './listoneFiltri.js';
@@ -7,13 +7,17 @@ import { COLONNE, differenza, filtraOrdina, prossimoOrdine } from './listoneFilt
  *  e niente segnali - per quelli c'e' la pagina Analisi. Qui si vuole vedere
  *  tante righe insieme e ordinarle. */
 
-export default function Listone({ stato }) {
-  const [ordine, setOrdine] = useState({ chiave: 'quotazione', crescente: false });
-  const [ruolo, setRuolo] = useState(null);
-  const [squadra, setSquadra] = useState('');
-  const [fascia, setFascia] = useState(null);
-  const [cerca, setCerca] = useState('');
-  const [soloAttivi, setSoloAttivi] = useState(true);
+export default function Listone({ stato, filtri, onFiltri, onApri }) {
+  /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
+     giocatore smonta questa pagina, e con i filtri in uno stato locale
+     tornare indietro li avrebbe azzerati. */
+  const { ordine, ruolo, squadra, fascia, cerca, soloAttivi } = filtri;
+  const setOrdine = (v) => onFiltri({ ...filtri, ordine: typeof v === 'function' ? v(filtri.ordine) : v });
+  const setRuolo = (v) => onFiltri({ ...filtri, ruolo: typeof v === 'function' ? v(filtri.ruolo) : v });
+  const setSquadra = (v) => onFiltri({ ...filtri, squadra: typeof v === 'function' ? v(filtri.squadra) : v });
+  const setFascia = (v) => onFiltri({ ...filtri, fascia: typeof v === 'function' ? v(filtri.fascia) : v });
+  const setCerca = (v) => onFiltri({ ...filtri, cerca: typeof v === 'function' ? v(filtri.cerca) : v });
+  const setSoloAttivi = (v) => onFiltri({ ...filtri, soloAttivi: typeof v === 'function' ? v(filtri.soloAttivi) : v });
 
   const squadre = useMemo(
     () => [...new Set(stato.giocatori.map((g) => g.squadra))].sort((a, b) => a.localeCompare(b, 'it')),
@@ -126,7 +130,11 @@ export default function Listone({ stato }) {
               const d = differenza(g);
               return (
                 <tr key={g.id} className={g.assente_dal ? 'uscito' : ''}>
-                  <td>{g.nome}</td>
+                  <td>
+                    <button className="link-nome" onClick={() => onApri(g.id)}>
+                      {g.nome}
+                    </button>
+                  </td>
                   <td className="sq">
                     <BadgeSquadra nome={g.squadra} size={17} titolo={false} /> {g.squadra}
                   </td>

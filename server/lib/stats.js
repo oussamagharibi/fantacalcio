@@ -166,3 +166,24 @@ export function importaStats({ dir = DATA_DIR, stagioni = STAGIONI } = {}) {
   }
   return { backupDb, esiti };
 }
+
+/** Lo storico fanta di ogni giocatore, stagione per stagione, per la pagina
+ *  dettaglio. Le stagioni si ordinano per ANNO d'inizio e non per testo.
+ *  Questi SI' sono dati di fantacalcio: media voto e fantamedia. Quelli di
+ *  carriera (Wikipedia) e di xg (Understat) sono calcio vero, non confonderli. */
+export function statsPerGiocatore() {
+  const righe = getDb()
+    .prepare(
+      `SELECT player_id, stagione, pv, mv, fm, gol, gs, rig_segnati, rig_tirati,
+              rig_parati, assist, amm, esp
+         FROM stats
+        ORDER BY player_id, CAST(substr(stagione, 1, 4) AS INTEGER), stagione`
+    )
+    .all();
+  const per = new Map();
+  for (const r of righe) {
+    if (!per.has(r.player_id)) per.set(r.player_id, []);
+    per.get(r.player_id).push(r);
+  }
+  return per;
+}

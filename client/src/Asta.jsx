@@ -25,7 +25,7 @@ function ChipSegnale({ s }) {
   return <span className={titolare ? 'chip tit' : 'chip panca'} title={s.testo}>{titolare ? `titolare ${perc ?? ''}%` : `panchina ${perc ?? ''}%`}</span>;
 }
 
-export default function Asta({ stato, onStato, config, onRicarica }) {
+export default function Asta({ stato, onStato, config, onRicarica, onApri }) {
   /** Dopo un reset la configurazione resta in archivio ma gli acquisti no:
    *  si torna comunque alla preparazione, perche' "Nuova asta" vuol dire
    *  ricominciare, non riprendere con gli stessi numeri. */
@@ -234,7 +234,9 @@ L'operazione non si annulla. Procedere?`
                   {p ? (
                     <>
                       <BadgeSquadra nome={p.squadra} size={22} />
-                      <span className="nome">{p.nome}</span>
+                      <button className="nome link-nome" onClick={() => onApri(p.player_id)}>
+                        {p.nome}
+                      </button>
                       <span className="prezzo">{p.prezzo}</span>
                     </>
                   ) : (
@@ -294,7 +296,10 @@ L'operazione non si annulla. Procedere?`
             <div className="lotto-testa">
               <div style={{ minWidth: 0 }}>
                 <div className="lotto-nome">
-                  {lotto.nome} {lotto.target && <span style={{ color: 'var(--oro)' }}>★</span>}
+                  <button className="link-nome" onClick={() => onApri(lotto.id)}>
+                    {lotto.nome}
+                  </button>{' '}
+                  {lotto.target && <span style={{ color: 'var(--oro)' }}>★</span>}
                 </div>
                 <div className="riga" style={{ margin: '8px 0 0', alignItems: 'center', gap: 8 }}>
                   <BadgeSquadra nome={lotto.squadra} size={26} />

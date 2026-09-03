@@ -20,7 +20,7 @@ function ChipSegnale({ s }) {
   );
 }
 
-function CardGiocatore({ g, onStella }) {
+function CardGiocatore({ g, onStella, onApri }) {
   const [aperta, setAperta] = useState(false);
   const [pop, setPop] = useState(false);
   const colore = RUOLI[g.ruolo]?.colore;
@@ -45,7 +45,9 @@ function CardGiocatore({ g, onStella }) {
       <div className="card-testa">
         <BadgeGiocatore nome={g.nome} ruolo={g.ruolo} />
         <div style={{ minWidth: 0 }}>
-          <div className="card-nome">{g.nome}</div>
+          <button className="card-nome link-nome" onClick={() => onApri(g.id)}>
+            {g.nome}
+          </button>
           <div className="card-squadra">
             <BadgeSquadra nome={g.squadra} size={15} titolo={false} /> {g.squadra}
           </div>
@@ -91,11 +93,15 @@ function CardGiocatore({ g, onStella }) {
   );
 }
 
-export default function Analisi({ stato, onStato, onRicarica }) {
-  const [reparto, setReparto] = useState('P');
-  const [fascia, setFascia] = useState(null);
-  const [soloSegnali, setSoloSegnali] = useState(false);
-  const [soloTarget, setSoloTarget] = useState(false);
+export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, onApri }) {
+  /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
+     giocatore smonta questa pagina, e con i filtri in uno stato locale
+     tornare indietro li avrebbe azzerati. */
+  const { reparto, fascia, soloSegnali, soloTarget } = filtri;
+  const setReparto = (v) => onFiltri({ ...filtri, reparto: typeof v === 'function' ? v(filtri.reparto) : v });
+  const setFascia = (v) => onFiltri({ ...filtri, fascia: typeof v === 'function' ? v(filtri.fascia) : v });
+  const setSoloSegnali = (v) => onFiltri({ ...filtri, soloSegnali: typeof v === 'function' ? v(filtri.soloSegnali) : v });
+  const setSoloTarget = (v) => onFiltri({ ...filtri, soloTarget: typeof v === 'function' ? v(filtri.soloTarget) : v });
   const [batch, setBatch] = useState({ inCorso: false, righe: [] });
   const timer = useRef(null);
 
@@ -193,7 +199,7 @@ export default function Analisi({ stato, onStato, onRicarica }) {
       ) : (
         <div className="griglia-card">
           {visibili.map((g) => (
-            <CardGiocatore key={g.id} g={g} onStella={stella} />
+            <CardGiocatore key={g.id} g={g} onStella={stella} onApri={onApri} />
           ))}
         </div>
       )}

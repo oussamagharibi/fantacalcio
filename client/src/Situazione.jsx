@@ -103,12 +103,48 @@ function Azioni({ g, apertura, setApertura, prezzo, setPrezzo, massimo, configur
   );
 }
 
-export default function Situazione({ stato, onStato }) {
-  const [filtroStato, setFiltroStato] = useState(null);
-  const [ruolo, setRuolo] = useState(null);
-  const [squadra, setSquadra] = useState('');
-  const [fascia, setFascia] = useState(null);
-  const [cerca, setCerca] = useState('');
+/** Le due zone di rilascio. Il trascinamento e' una scorciatoia, non l'unica
+ *  strada: i pulsanti in riga restano, e sotto i 900px le zone spariscono
+ *  perche' su uno schermo stretto trascinare in una tabella non funziona. */
+function ZoneRilascio({ inCorso, configurata, onRilascia }) {
+  const [sopra, setSopra] = useState(null);
+  const zona = (chiave, titolo, sotto, spenta) => (
+    <div
+      className={`rilascio-zona${sopra === chiave ? ' sopra' : ''}${spenta ? ' spenta' : ''}`}
+      onDragOver={(e) => {
+        if (spenta) return;
+        e.preventDefault(); // senza questo il browser non considera l'area un bersaglio
+        setSopra(chiave);
+      }}
+      onDragLeave={() => setSopra((x) => (x === chiave ? null : x))}
+      onDrop={(e) => {
+        e.preventDefault();
+        setSopra(null);
+        if (!spenta) onRilascia(chiave);
+      }}
+    >
+      <strong>{titolo}</strong>
+      <span className="muted">{sotto}</span>
+    </div>
+  );
+  return (
+    <div className={`rilascio${inCorso ? ' in-corso' : ''}`}>
+      {zona('me', 'La mia squadra', configurata ? 'chiede il prezzo' : "prima prepara l'asta", !configurata)}
+      {zona('altri', 'Preso da altri', 'esce senza prezzo', false)}
+    </div>
+  );
+}
+
+export default function Situazione({ stato, onStato, filtri, onFiltri, onApri }) {
+  /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
+     giocatore smonta questa pagina, e con i filtri in uno stato locale
+     tornare indietro li avrebbe azzerati. */
+  const { stato: filtroStato, ruolo, squadra, fascia, cerca } = filtri;
+  const setFiltroStato = (v) => onFiltri({ ...filtri, stato: typeof v === 'function' ? v(filtri.stato) : v });
+  const setRuolo = (v) => onFiltri({ ...filtri, ruolo: typeof v === 'function' ? v(filtri.ruolo) : v });
+  const setSquadra = (v) => onFiltri({ ...filtri, squadra: typeof v === 'function' ? v(filtri.squadra) : v });
+  const setFascia = (v) => onFiltri({ ...filtri, fascia: typeof v === 'function' ? v(filtri.fascia) : v });
+  const setCerca = (v) => onFiltri({ ...filtri, cerca: typeof v === 'function' ? v(filtri.cerca) : v });
 
   /** Quale riga ha un campo aperto, e di che tipo. Vive solo qui: e' interfaccia,
    *  non un dato dell'asta, e i filtri non lo toccano. */
@@ -116,6 +152,10 @@ export default function Situazione({ stato, onStato }) {
   const [prezzo, setPrezzo] = useState('');
   const [toast, setToast] = useState(null);
   const [inCorso, setInCorso] = useState(false);
+  /** Quale riga si sta trascinando. La verita' sta qui e non in dataTransfer:
+   *  quello si riempie lo stesso per il browser, ma leggerlo al rilascio e'
+   *  soggetto ai limiti che ogni browser mette sul contenuto trascinato. */
+  const [trascinato, setTrascinato] = useState(null);
   const campoPrezzo = useRef(null);
 
   const avvisa = (testo, tipo = 'ok') => {
@@ -166,6 +206,19 @@ export default function Situazione({ stato, onStato }) {
     } finally {
       setInCorso(false);
     }
+  }
+
+  /** Rilasciare fa esattamente quello che fanno i due pulsanti: sulla mia
+   *  squadra apre il campo prezzo, sugli altri registra l'uscita. Nessuna
+   *  seconda strada per scrivere le stesse righe. */
+  function rilascia(zona) {
+    const g = tutti.find((x) => x.id === trascinato);
+    setTrascinato(null);
+    if (!g || g.stato !== 'disponibile') return;
+    if (zona === 'me') {
+      setPrezzo('');
+      setApertura({ tipo: 'prezzo', id: g.id });
+    } else azione('uscita', g);
   }
 
   const massimo = stato.rosa.massimoSostenibile;
@@ -264,6 +317,8 @@ export default function Situazione({ stato, onStato }) {
         </span>
       </div>
 
+      <ZoneRilascio inCorso={trascinato !== null} configurata={configurata} onRilascia={rilascia} />
+
       {righe.length === 0 ? (
         <p className="muted">Nessun giocatore con questi filtri.</p>
       ) : (
@@ -283,8 +338,25 @@ export default function Situazione({ stato, onStato }) {
           </thead>
           <tbody>
             {righe.map((g) => (
-              <tr key={g.id} className={g.stato === 'me' ? 'riga-me' : g.stato === 'uscito' ? 'riga-uscito' : ''}>
-                <td>{g.nome}</td>
+              <tr
+                key={g.id}
+                className={
+                  (g.stato === 'me' ? 'riga-me' : g.stato === 'uscito' ? 'riga-uscito' : 'riga-libera') +
+                  (trascinato === g.id ? ' si-trascina' : '')
+                }
+                draggable={g.stato === 'disponibile'}
+                onDragStart={(e) => {
+                  setTrascinato(g.id);
+                  e.dataTransfer?.setData?.('text/plain', String(g.id));
+                  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => setTrascinato(null)}
+              >
+                <td>
+                  <button className="link-nome" onClick={() => onApri(g.id)}>
+                    {g.nome}
+                  </button>
+                </td>
                 <td className="sq">
                   <BadgeSquadra nome={g.squadra} size={17} titolo={false} /> {g.squadra}
                 </td>
