@@ -1,0 +1,18 @@
+# Quello che non deve entrare nell'immagine.
+# data/ per primo: contiene il db dell'asta, i backup e i file scaricati a mano.
+# In produzione quei dati stanno sul volume, non nell'immagine.
+data/
+
+node_modules/
+client/node_modules/
+client/dist/
+
+# Il .env locale non deve mai finire in un layer: e' esattamente il problema
+# che questo Dockerfile esiste per chiudere.
+.env
+.env.local
+
+.git/
+.gitignore
+*.log
+README.md
