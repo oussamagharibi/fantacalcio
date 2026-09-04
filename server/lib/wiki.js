@@ -252,6 +252,33 @@ export function inizialiCombaciano(titolo, nome) {
   return pref.some((x) => parole[0].startsWith(x));
 }
 
+/** Quando il listone NON abbrevia il nome proprio, il guardiano sulle iniziali
+ *  non ha niente da confrontare e lascia passare tutto. Va bene finche' quel
+ *  cognome e' unico; se nel listone c'e' un altro giocatore che lo porta, la
+ *  pagina puo' benissimo essere la sua.
+ *
+ *  E' successo con i Thuram: il listone scrive "Thuram" (Inter) e "Thuram K."
+ *  (Juventus), la pagina di Khephren cita l'Inter perche' ci gioca il fratello,
+ *  e la carriera di Khephren e' finita addosso a Marcus.
+ *
+ *  Stesso principio del caso Terracciano - ambiguita' non risolvibile, meglio
+ *  nessun dato - ma li' i due erano nella stessa squadra e a fermare tutto
+ *  bastava il guardiano della squadra. Qui le squadre sono diverse, quindi
+ *  quello non interviene e serve questo.
+ *
+ *  Si scarta in due casi. La pagina non porta un nome proprio (titolo di una
+ *  parola sola): non c'e' modo di decidere. Oppure il nome proprio comincia
+ *  come l'abbreviazione di un omonimo: allora la pagina e' SUA, non nostra.
+ *  Se invece non somiglia a nessun omonimo, per esclusione resta nostra. */
+export function distinguibile(titolo, nome, omonimi = []) {
+  if (prefissiNome(nome).length) return true; // l'iniziale ce l'ha: decide inizialiCombaciano
+  if (!omonimi.length) return true; // cognome unico nel listone: niente da distinguere
+  const parole = senzaAccenti(titolo).split(/\s+/).filter(Boolean);
+  if (parole.length < 2) return false; // la pagina non ha un nome proprio
+  const proprio = parole[0];
+  return !omonimi.some((o) => prefissiNome(o).some((x) => proprio.startsWith(x)));
+}
+
 /** Ruolo dall'infobox. Si controlla solo la distinzione portiere / non portiere:
  *  e' netta e certa, mentre fra difensore, centrocampista e attaccante
  *  Wikipedia e Fantacalcio classificano diversamente le ali e i trequartisti,
@@ -272,15 +299,23 @@ export function titoloContieneCognome(titolo, cognome) {
   return senzaAccenti(titolo).includes(senzaAccenti(cognome));
 }
 
-/** Sceglie la pagina buona. Quattro prove, tutte da superare: il titolo porta
- *  il cognome, la pagina cita la squadra attuale, il nome proprio combacia con
- *  l'abbreviazione, il ruolo e' compatibile. Se nessuna pagina le supera si
- *  scarta: la carriera di un omonimo e' peggio di nessuna carriera. */
-export function scegliPagina(pagine, squadra, nome, ruolo, cognome) {
+/** Sceglie la pagina buona. Cinque prove, tutte da superare: il titolo porta il
+ *  cognome, il cognome non e' ambiguo nel listone (o la pagina lo risolve), la
+ *  pagina cita la squadra attuale, il nome proprio combacia con l'abbreviazione,
+ *  il ruolo e' compatibile. Se nessuna pagina le supera si scarta: la carriera
+ *  di un omonimo e' peggio di nessuna carriera. */
+export function scegliPagina(pagine, squadra, nome, ruolo, cognome, omonimi = []) {
   const scartate = [];
   for (const p of pagine) {
     if (cognome && !titoloContieneCognome(p.titolo, cognome)) {
       scartate.push({ titolo: p.titolo, motivo: `il titolo non contiene "${cognome}"` });
+      continue;
+    }
+    if (!distinguibile(p.titolo, nome, omonimi)) {
+      scartate.push({
+        titolo: p.titolo,
+        motivo: `nel listone "${cognome}" e' anche di ${omonimi.join(', ')}, e qui non c'e' un nome proprio che distingua`,
+      });
       continue;
     }
     if (!citaSquadra(p.wikitext, squadra)) {

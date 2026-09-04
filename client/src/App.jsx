@@ -44,6 +44,14 @@ export default function App() {
   /** Da dove si e' arrivati alla scheda: il pulsante indietro ci riporta, e la
    *  pagina ritrova i suoi filtri perche' vivono qui sopra. */
   const [provenienza, setProvenienza] = useState('analisi');
+  /** Il messaggio dopo un'azione sta qui perche' le azioni ora partono da
+   *  quattro pagine diverse: un toast per pagina avrebbe voluto dire quattro
+   *  copie della stessa cosa, e due visibili insieme quando si cambia vista. */
+  const [toast, setToast] = useState(null);
+  const avvisa = (testo, tipo = 'ok') => {
+    setToast({ testo, tipo });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     const cambio = () => setRotta(rottaDaHash());
@@ -91,6 +99,8 @@ export default function App() {
     filtri: filtri[chiave],
     onFiltri: (f) => setFiltri((s) => ({ ...s, [chiave]: f })),
     onApri: apri,
+    onStato: setStato,
+    onAvviso: avvisa,
   });
 
   const slotTotali = Object.values(stato.rosa.slot).reduce((a, b) => a + b, 0);
@@ -127,6 +137,9 @@ export default function App() {
       {pagina === 'giocatore' && (
         <Giocatore
           g={stato.giocatori.find((x) => x.id === id) ?? null}
+          stato={stato}
+          onStato={setStato}
+          onAvviso={avvisa}
           onIndietro={indietro}
           provenienza={NOMI[provenienza]}
         />
@@ -135,10 +148,9 @@ export default function App() {
         <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} onApri={apri} />
       )}
       {pagina === 'listone' && <Listone stato={stato} {...perPagina('listone')} />}
-      {pagina === 'situazione' && <Situazione stato={stato} onStato={setStato} {...perPagina('situazione')} />}
-      {pagina === 'analisi' && (
-        <Analisi stato={stato} onStato={setStato} onRicarica={ricarica} {...perPagina('analisi')} />
-      )}
+      {pagina === 'situazione' && <Situazione stato={stato} {...perPagina('situazione')} />}
+      {pagina === 'analisi' && <Analisi stato={stato} onRicarica={ricarica} {...perPagina('analisi')} />}
+      {toast && <div className={`toast${toast.tipo === 'ko' ? ' ko' : ''}`}>{toast.testo}</div>}
     </>
   );
 }

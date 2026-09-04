@@ -20,6 +20,12 @@ const valore = (f, d) => {
 };
 const LIMITE = valore('--limite', Infinity);
 const SOLO_MANCANTI = ha('--solo-mancanti');
+/** --solo "Thuram": un giocatore alla volta. Serve per riprovare un caso
+ *  singolo dopo una correzione, senza rifare 500 richieste a Wikipedia. */
+const SOLO = (() => {
+  const i = ARGS.indexOf('--solo');
+  return i >= 0 ? ARGS[i + 1] ?? null : null;
+})();
 
 const log = (m) => console.log(`[wiki] ${m}`);
 
@@ -60,8 +66,24 @@ const giocatori = db
       ORDER BY p.quotazione DESC, p.nome`
   )
   .all()
+  .filter((g) => !SOLO || g.nome === SOLO)
   .filter((g) => !SOLO_MANCANTI || g.gia === 0)
   .slice(0, LIMITE === Infinity ? undefined : LIMITE);
+
+if (SOLO && !giocatori.length) {
+  console.error(`[wiki] nessun giocatore in listino si chiama esattamente "${SOLO}"`);
+  process.exit(1);
+}
+
+/** Gli altri giocatori del listone che portano lo stesso cognome. Il guardiano
+ *  ne ha bisogno: senza, "Thuram" si prende la pagina di Khephren. */
+const perCognome = new Map();
+for (const g of db.prepare('SELECT nome FROM players WHERE assente_dal IS NULL').all()) {
+  const k = cognomeDi(g.nome).toLowerCase();
+  if (!perCognome.has(k)) perCognome.set(k, []);
+  perCognome.get(k).push(g.nome);
+}
+const omonimiDi = (nome) => (perCognome.get(cognomeDi(nome).toLowerCase()) ?? []).filter((x) => x !== nome);
 
 log(`giocatori da cercare: ${giocatori.length}${SOLO_MANCANTI ? ' (solo quelli senza carriera)' : ''}`);
 log(`fonte: ${FONTE} — presenze e gol reali, NON dati di fantacalcio`);
@@ -74,7 +96,7 @@ for (const [i, g] of giocatori.entries()) {
   const cognome = cognomeDi(g.nome);
   try {
     const pagine = await conRiprova(() => cercaPagine(cognome, g.squadra), g.nome);
-    const { pagina, righe, scartate } = scegliPagina(pagine, g.squadra, g.nome, g.ruolo, cognome);
+    const { pagina, righe, scartate } = scegliPagina(pagine, g.squadra, g.nome, g.ruolo, cognome, omonimiDi(g.nome));
     if (!pagina) {
       esito.scartati.push({ nome: g.nome, squadra: g.squadra, candidate: scartate });
       log(`${String(i + 1).padStart(3)}/${giocatori.length} ${g.nome.padEnd(20)} SCARTATO: ${scartate.map((s) => `"${s.titolo}" ${s.motivo}`).join(' | ') || 'nessun risultato'}`);

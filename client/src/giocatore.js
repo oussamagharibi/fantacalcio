@@ -83,6 +83,70 @@ export const xgPer90 = (r) => {
 export const fantamedie = (g) => (g?.stats ?? []).filter((s) => s.fm !== null && s.fm !== undefined);
 export const stagioniXg = (g) => (g?.xgStagioni ?? []).filter((r) => r.gol !== null || r.xg !== null);
 
+/** Rigori dallo storico fanta, sommati sulle stagioni che ne hanno.
+ *  La percentuale si calcola qui e non si salva: deriva da due colonne della
+ *  stessa riga, e una percentuale in archivio prima o poi resta indietro
+ *  rispetto ai numeri da cui viene.
+ *  Zero tirati non e' "0%": e' nessun rigore, e non si mostra affatto. */
+export function rigoriFanta(g) {
+  const righe = (g?.stats ?? []).filter((r) => (r.rig_tirati ?? 0) > 0);
+  if (!righe.length) return null;
+  const segnati = righe.reduce((s, r) => s + (r.rig_segnati ?? 0), 0);
+  const tirati = righe.reduce((s, r) => s + r.rig_tirati, 0);
+  return {
+    segnati,
+    tirati,
+    sbagliati: tirati - segnati,
+    percentuale: arrotonda((100 * segnati) / tirati, 1),
+    stagioni: righe.map((r) => r.stagione),
+  };
+}
+
+const nucleo = (s) =>
+  String(s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+/** La squadra del listone contro quella dell'ultima stagione di carriera.
+ *  Serve a vedere a colpo d'occhio chi si e' mosso a mercato: il rendimento
+ *  passato l'ha fatto altrove, con altri compagni e un altro ruolo in campo.
+ *  Il confronto e' largo di proposito - "Inter" contro "Internazionale" - e in
+ *  caso di dubbio NON segnala: un falso cambio di squadra e' peggio di un
+ *  cambio non segnalato. */
+const stessaSquadra = (a, b) => !!a && !!b && (a === b || a.includes(b) || b.includes(a));
+
+export function cambioSquadra(g) {
+  const righe = (g?.carriera ?? []).filter((r) => r.squadra && r.stagione);
+  if (!righe.length || !g?.squadra) return null;
+  const anno = (r) => Number(String(r.stagione).slice(-4)) || 0;
+  /** Si guardano TUTTE le righe dell'ultimo anno, non una sola. Dentro lo
+   *  stesso anno l'ordine fra le etichette e' alfabetico e non cronologico
+   *  ("ago.2026" prima di "lug.-ago.2026"), quindi prenderne una a caso
+   *  significa a volte prendere il club sbagliato: e' cosi' che Beto, che nel
+   *  2026 ha righe sia all'Everton sia alla Fiorentina, risultava trasferito
+   *  mentre e' proprio dove il listone lo mette.
+   *  Se una qualsiasi delle righe recenti nomina la squadra attuale, non c'e'
+   *  niente da segnalare: nel dubbio si tace, un falso cambio e' peggio di un
+   *  cambio non detto. */
+  const ultimoAnno = Math.max(...righe.map(anno));
+  const recenti = righe.filter((r) => anno(r) === ultimoAnno);
+  const attuale = nucleo(g.squadra);
+  if (!attuale || recenti.some((r) => stessaSquadra(attuale, nucleo(r.squadra))))
+    return { attuale: g.squadra, precedente: null, stagione: null, cambiata: false };
+
+  // Fra le righe recenti vince quella con piu' presenze: e' il club dove ha
+  // davvero giocato, non una comparsata in coppa.
+  const principale = recenti.reduce((a, b) => ((b.presenze ?? 0) > (a.presenze ?? 0) ? b : a));
+  return {
+    attuale: g.squadra,
+    precedente: principale.squadra,
+    stagione: principale.stagione,
+    cambiata: true,
+  };
+}
+
 /** Quali blocchi hanno qualcosa da dire. Una sezione senza dato non si mostra:
  *  niente riquadri di trattini. */
 export function sezioni(g) {
@@ -94,6 +158,8 @@ export function sezioni(g) {
     titolarita: !!titolarita(g),
     infortunio: !!infortunio(g),
     carriera: (g?.carriera ?? []).length > 0,
+    rigori: !!rigoriFanta(g),
+    cambioSquadra: !!cambioSquadra(g)?.cambiata,
     nota: !!g?.note,
   };
 }

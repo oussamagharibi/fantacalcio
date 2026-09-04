@@ -2,12 +2,13 @@ import { useMemo } from 'react';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra } from './Badge.jsx';
 import { COLONNE, differenza, filtraOrdina, prossimoOrdine } from './listoneFiltri.js';
+import AzioniGiocatore from './AzioniGiocatore.jsx';
 
 /** Vista tabellare del listone: dati grezzi, densi, da consultare. Niente card
  *  e niente segnali - per quelli c'e' la pagina Analisi. Qui si vuole vedere
  *  tante righe insieme e ordinarle. */
 
-export default function Listone({ stato, filtri, onFiltri, onApri }) {
+export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAvviso }) {
   /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
      giocatore smonta questa pagina, e con i filtri in uno stato locale
      tornare indietro li avrebbe azzerati. */
@@ -123,6 +124,7 @@ export default function Listone({ stato, filtri, onFiltri, onApri }) {
                   {ordine.chiave === c.chiave ? (ordine.crescente ? ' ▲' : ' ▼') : ''}
                 </th>
               ))}
+              <th className="azioni">Azioni</th>
             </tr>
           </thead>
           <tbody>
@@ -156,6 +158,12 @@ export default function Listone({ stato, filtri, onFiltri, onApri }) {
                       <span className="avviso">non piu' in listino dal {new Date(g.assente_dal).toLocaleDateString('it-IT')}</span>
                     ) : (
                       <span className="muted">attivo</span>
+                    )}
+                  </td>
+                  <td className="azioni">
+                    {/* Chi non e' piu' in listino non si compra: niente pulsanti. */}
+                    {!g.assente_dal && (
+                      <AzioniGiocatore g={g} stato={stato} onStato={onStato} onAvviso={onAvviso} compatto />
                     )}
                   </td>
                 </tr>

@@ -2,6 +2,7 @@
  *  componente perche' e' la parte che vale la pena verificare da sola. */
 
 import { ORDINE_RUOLI } from './squadre.js';
+import { statoGiocatore } from './azioni.js';
 
 const senzaAccenti = (s) =>
   String(s ?? '')
@@ -9,11 +10,8 @@ const senzaAccenti = (s) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 
-export const STATI = [
-  { chiave: 'disponibile', etichetta: 'Disponibile' },
-  { chiave: 'me', etichetta: 'Preso da me' },
-  { chiave: 'uscito', etichetta: 'Uscito' },
-];
+// I tre stati vivono in azioni.js insieme alle azioni che li cambiano.
+export { STATI } from './azioni.js';
 
 /** Tre stati, non uno di piu'. "Uscito" non porta prezzo ne' squadra perche'
  *  l'applicazione non li registra: quando un giocatore va a un altro
@@ -22,14 +20,7 @@ export const STATI = [
  *  Un acquisto che non risulta nella mia rosa e' comunque fuori dall'asta:
  *  vale "Uscito", che e' esattamente quello che se ne sa. */
 export function conStato(giocatori, presi) {
-  const miei = new Map(presi.map((p) => [p.player_id, p.prezzo]));
-  return giocatori
-    .filter((g) => !g.assente_dal)
-    .map((g) => {
-      if (miei.has(g.id)) return { ...g, stato: 'me', prezzo: miei.get(g.id) };
-      if (g.uscito || g.acquistato) return { ...g, stato: 'uscito', prezzo: null };
-      return { ...g, stato: 'disponibile', prezzo: null };
-    });
+  return giocatori.filter((g) => !g.assente_dal).map((g) => ({ ...g, ...statoGiocatore(g, presi) }));
 }
 
 export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia = null, cerca = '' } = {}) {

@@ -367,6 +367,20 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 /* L'avviso sul massimo sostenibile non blocca niente: il prezzo lo fa
    l'asta, non l'applicazione. */
 .az-avviso { color: var(--oro); font-size: 11px; white-space: nowrap; }
+/* Il gruppo compatto e' quello delle tabelle, dove lo spazio e' poco; quello
+   normale sta nelle card e nella scheda, dove i pulsanti possono respirare. */
+.az-gruppo.compatto { gap: 4px; }
+.az-pagato { font-size: 12px; color: var(--ok); white-space: nowrap; }
+.az-pagato strong { font-variant-numeric: tabular-nums; }
+/* Nelle card e nella scheda le azioni partono da sinistra, non da destra. */
+.card-azioni, .det-azioni { display: flex; margin-top: 10px; }
+.card-azioni .az-gruppo, .card-azioni .az-prezzo,
+.det-azioni .az-gruppo, .det-azioni .az-prezzo { justify-content: flex-start; flex-wrap: wrap; }
+.det-azioni { margin: 0 0 16px; }
+.det-azioni .az { padding: 7px 14px; font-size: 13px; }
+.det-azioni .az-prezzo input { width: 110px; padding: 6px 9px; font-size: 14px; }
+.tabella-listone th.azioni, .tabella-listone td.azioni { width: 1%; white-space: nowrap; text-align: right; }
+
 
 /* Zone di rilascio: presenti sempre, ma spente finche' non si trascina, cosi'
    non rubano attenzione a chi usa i pulsanti. */
@@ -465,6 +479,21 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .det-tab td.forte { font-weight: 700; }
 .det-tab td.scarto.occasione { color: var(--ok); font-weight: 700; }
 .det-tab td.scarto.calo { color: var(--ko); font-weight: 700; }
+/* Avvisi in cima alla scheda: cambiano la lettura di tutto quello che segue,
+   quindi si leggono prima dei dati e non in mezzo. Tinte desaturate, come le
+   righe della pagina Situazione. */
+.det-banner {
+  border-radius: var(--r); padding: 10px 14px; margin: 0 0 12px; font-size: 13px;
+  border: 1px solid var(--line); line-height: 1.45;
+}
+.det-banner.fuori { background: rgba(139, 144, 160, 0.10); color: var(--muted); }
+.det-banner.fuori strong { color: var(--fg); }
+.det-banner.infortunio { background: rgba(239, 91, 91, 0.10); border-color: rgba(239, 91, 91, 0.45); }
+.det-banner.infortunio strong { color: var(--ko); }
+.det-banner.cambio { background: rgba(255, 200, 87, 0.09); border-color: rgba(255, 200, 87, 0.40); }
+.det-banner.cambio strong { color: var(--oro); }
+.det-dati .giu { color: var(--ko); }
+
 
 @media (max-width: 1400px) {
   .asta-griglia { grid-template-columns: 260px minmax(0, 1fr) 250px; gap: 12px; }

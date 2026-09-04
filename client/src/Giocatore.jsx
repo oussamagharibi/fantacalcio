@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
+import AzioniGiocatore from './AzioniGiocatore.jsx';
 import {
   MOTIVO_INSUFFICIENTE,
   arrotonda,
+  cambioSquadra,
   contatoreVero,
   fantamedie,
   infortunio,
   minutiVeri,
+  rigoriFanta,
   rigorista,
   sciogliEntita,
   sezioni,
@@ -101,7 +104,7 @@ function Punteggio({ g }) {
   );
 }
 
-export default function Giocatore({ g, onIndietro, provenienza }) {
+export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, provenienza }) {
   if (!g)
     return (
       <main className="wrap">
@@ -118,6 +121,8 @@ export default function Giocatore({ g, onIndietro, provenienza }) {
   const rig = rigorista(g);
   const tit = titolarita(g);
   const inf = infortunio(g);
+  const rigori = rigoriFanta(g);
+  const cambio = cambioSquadra(g);
   const portiere = g.ruolo === 'P';
   const diff = g.quotazione_iniziale === null ? null : g.quotazione - g.quotazione_iniziale;
 
@@ -126,6 +131,34 @@ export default function Giocatore({ g, onIndietro, provenienza }) {
       <button className="det-indietro" onClick={onIndietro}>
         ← torna a {provenienza ?? 'Analisi'}
       </button>
+
+      {/* Non piu' in listino cambia tutto quello che segue: si legge prima dei
+          dati, non incastrato fra un chip e l'altro. */}
+      {g.assente_dal && (
+        <p className="det-banner fuori">
+          <strong>Non piu' nel listino</strong> dal {new Date(g.assente_dal).toLocaleDateString('it-IT')}. Non e' piu'
+          acquistabile: i dati qui sotto restano per consultazione.
+        </p>
+      )}
+
+      {/* L'infortunio per esteso, non un'icona: il testo dice quando torna, ed
+          e' l'unica cosa che serve davvero sapere prima di puntarci. */}
+      {inf && (
+        <p className="det-banner infortunio">
+          <strong>Infortunio in corso.</strong> {sciogliEntita(inf.testo)}
+        </p>
+      )}
+
+      {/* Cambio squadra: il rendimento passato l'ha fatto da un'altra parte. */}
+      {cambio?.cambiata && (
+        <p className="det-banner cambio">
+          {/* Senza articoli davanti ai nomi di club: "al Inter" e "al Fiorentina"
+              richiederebbero un accordo che non vale la pena indovinare. */}
+          <strong>Ha cambiato squadra.</strong> Nel listone: <strong>{cambio.attuale}</strong>. Ultima stagione in
+          carriera ({cambio.stagione}): <strong>{cambio.precedente}</strong>. Il rendimento passato l'ha fatto
+          altrove.
+        </p>
+      )}
 
       <header className="det-testa">
         <BadgeGiocatore nome={g.nome} ruolo={g.ruolo} />
@@ -138,11 +171,18 @@ export default function Giocatore({ g, onIndietro, provenienza }) {
             </span>
             <Fascia valore={g.fascia} ruolo={g.ruolo} />
             {g.target && <span className="chip" style={{ color: 'var(--oro)', borderColor: 'var(--oro)' }}>★ obiettivo</span>}
-            {g.assente_dal && <span className="chip avviso">non piu' in listino</span>}
           </div>
         </div>
         <Punteggio g={g} />
       </header>
+
+      {/* Le azioni in alto, prima dei dati: da qui si decide, e la decisione
+          non deve stare in fondo a una pagina che si scorre. */}
+      {!g.assente_dal && (
+        <section className="det-azioni">
+          <AzioniGiocatore g={g} stato={stato} onStato={onStato} onAvviso={onAvviso} />
+        </section>
+      )}
 
       <div className="det-colonne">
         <Sezione titolo="Listone" fonte="fantacalcio.it">
@@ -256,22 +296,31 @@ export default function Giocatore({ g, onIndietro, provenienza }) {
           </Sezione>
         )}
 
-        {(s.rigorista || s.titolarita || s.infortunio) && (
+        {(s.rigorista || s.rigori || s.titolarita || s.infortunio) && (
           <Sezione titolo="Segnali" fonte="liste fantacalcio.it">
             <dl className="det-dati">
               {s.rigorista && (
                 <div>
                   <dt>Rigorista</dt>
+                  <dd>si'{rig.ordine ? ` — ${rig.ordine}ª scelta` : ''}</dd>
+                </div>
+              )}
+              {/* I rigori tirati vengono dagli Excel e non dalla lista dei
+                  rigoristi: uno puo' averne calciati senza essere il designato
+                  di oggi, e viceversa. Percentuale calcolata, mai salvata. */}
+              {s.rigori && (
+                <div>
+                  <dt>Rigori calciati</dt>
                   <dd>
-                    si'{rig.ordine ? ` — ${rig.ordine}ª scelta` : ''}
-                    {/* segnati/tirati arrivano dagli Excel: si mostrano solo se ci sono */}
-                    {fm.some((r) => r.rig_tirati) && (
-                      <span className="muted">
-                        {' '}
-                        · {fm.reduce((a, r) => a + (r.rig_segnati ?? 0), 0)} su{' '}
-                        {fm.reduce((a, r) => a + (r.rig_tirati ?? 0), 0)} realizzati in carriera fanta
-                      </span>
-                    )}
+                    <strong>{rigori.segnati}</strong> su <strong>{rigori.tirati}</strong>{' '}
+                    <span className={rigori.percentuale >= 80 ? 'su' : rigori.percentuale < 60 ? 'giu' : ''}>
+                      ({rigori.percentuale}%)
+                    </span>
+                    <span className="muted">
+                      {' '}
+                      · {rigori.stagioni.join(', ')}
+                      {rigori.sbagliati > 0 && ` · ${rigori.sbagliati} sbagliati`}
+                    </span>
                   </dd>
                 </div>
               )}
@@ -284,9 +333,9 @@ export default function Giocatore({ g, onIndietro, provenienza }) {
                 </div>
               )}
               {s.infortunio && (
-                <div className="det-infortunio">
+                <div>
                   <dt>Infortunio</dt>
-                  <dd>{sciogliEntita(inf.testo)}</dd>
+                  <dd className="giu">in corso — il dettaglio e' in cima alla scheda</dd>
                 </div>
               )}
             </dl>

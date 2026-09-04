@@ -6,6 +6,7 @@ import UploadListone from './UploadListone.jsx';
 import UploadFonte from './UploadFonte.jsx';
 import Carriera from './Carriera.jsx';
 import Xg from './Xg.jsx';
+import AzioniGiocatore from './AzioniGiocatore.jsx';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
  *  titolarita'. Il testo lungo resta nel title, la card non si allarga. */
@@ -21,7 +22,7 @@ function ChipSegnale({ s }) {
   );
 }
 
-function CardGiocatore({ g, onStella, onApri }) {
+function CardGiocatore({ g, onStella, onApri, stato, onStato, onAvviso }) {
   const [aperta, setAperta] = useState(false);
   const [pop, setPop] = useState(false);
   const colore = RUOLI[g.ruolo]?.colore;
@@ -74,6 +75,10 @@ function CardGiocatore({ g, onStella, onApri }) {
         </div>
       )}
 
+      <div className="card-azioni">
+        <AzioniGiocatore g={g} stato={stato} onStato={onStato} onAvviso={onAvviso} />
+      </div>
+
       <Xg dati={g.xg} compatto />
       <Carriera righe={g.carriera} ruolo={g.ruolo} />
 
@@ -94,7 +99,7 @@ function CardGiocatore({ g, onStella, onApri }) {
   );
 }
 
-export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, onApri }) {
+export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, onApri, onAvviso }) {
   /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
      giocatore smonta questa pagina, e con i filtri in uno stato locale
      tornare indietro li avrebbe azzerati. */
@@ -200,7 +205,15 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
       ) : (
         <div className="griglia-card">
           {visibili.map((g) => (
-            <CardGiocatore key={g.id} g={g} onStella={stella} onApri={onApri} />
+            <CardGiocatore
+              key={g.id}
+              g={g}
+              onStella={stella}
+              onApri={onApri}
+              stato={stato}
+              onStato={onStato}
+              onAvviso={onAvviso}
+            />
           ))}
         </div>
       )}
