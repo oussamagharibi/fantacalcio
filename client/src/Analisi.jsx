@@ -231,6 +231,13 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
                   {s.senzaGiocatore > 0 && <> &middot; {s.senzaGiocatore} senza giocatore nel listone</>}
                 </p>
               ))}
+              {/* Una colonna attesa che non c'e' si vede: un NULL silenzioso
+                  aveva gia' lasciato i gol vuoti per due caricamenti di fila. */}
+              {e.stagioni.flatMap((s) => (s.colonneMancanti ?? []).map((c) => `${s.stagione}: ${c}`)).map((c) => (
+                <p className="avviso" key={c}>
+                  {c}
+                </p>
+              ))}
             </>
           )}
         />

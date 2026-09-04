@@ -27,17 +27,56 @@ const COLONNE = {
   pv: 'PV',
   mv: 'MV',
   fm: 'FM',
-  gol: 'Gol',
+  // I gol fatti si chiamano "Gf" nel formato attuale. "Gol" resta come alias
+  // perche' un file scaricato prima del cambio deve continuare a leggersi.
+  gol: ['Gf', 'Gol'],
   gs: 'GS',
-  rig: 'Rig',
+  // I rigori non stanno piu' in una cella sola "3 / 4": il foglio li divide in
+  // Rc (calciati), R+ (segnati) e R- (sbagliati). Sui file veri R+ + R- fa
+  // esattamente Rc, riga per riga, quindi i tirati si leggono da Rc.
+  rigCalciati: 'Rc',
+  rigSegnati: 'R+',
+  rigSbagliati: 'R-',
+  rig: 'Rig', // formato vecchio, "segnati / tirati" in una cella sola
   rigParati: 'RP',
   assist: 'Ass',
   amm: 'Amm',
   esp: 'Esp',
 };
-/** Senza Id e Nome/Squadra non si fa niente; il resto puo' mancare e resta NULL. */
+/** Senza Id e Nome/Squadra non si fa niente; il resto puo' mancare. */
 const OBBLIGATORIE = ['id', 'nome', 'squadra'];
 const OPZIONALI = Object.keys(COLONNE).filter((k) => !OBBLIGATORIE.includes(k));
+
+/** Cosa il foglio dovrebbe darci, e da quali colonne il dato puo' arrivare.
+ *  Si ragiona per DATO e non per colonna: "Rig" assente non e' un problema se
+ *  il foglio ha "R+", e dirlo lo stesso sarebbe rumore che nasconde gli avvisi
+ *  veri. Un dato manca solo quando nessuna delle sue colonne c'e'. */
+const DATI_ATTESI = [
+  { dato: 'presenze', campi: ['pv'] },
+  { dato: 'media voto', campi: ['mv'] },
+  { dato: 'fantamedia', campi: ['fm'] },
+  { dato: 'gol fatti', campi: ['gol'] },
+  { dato: 'gol subiti', campi: ['gs'] },
+  { dato: 'rigori segnati e tirati', campi: ['rigSegnati', 'rig'] },
+  { dato: 'rigori parati', campi: ['rigParati'] },
+  { dato: 'assist', campi: ['assist'] },
+  { dato: 'ammonizioni', campi: ['amm'] },
+  { dato: 'espulsioni', campi: ['esp'] },
+];
+
+const etichette = (campi) =>
+  campi
+    .flatMap((c) => (Array.isArray(COLONNE[c]) ? COLONNE[c] : [COLONNE[c]]))
+    .map((e) => `"${e}"`)
+    .join(' o ');
+
+/** Gli avvisi da mettere nell'esito dell'import. Prima una colonna assente
+ *  diventava un NULL silenzioso e l'import riportava successo: e' cosi' che i
+ *  gol sono rimasti vuoti per due caricamenti di fila senza che nulla lo dicesse. */
+export const datiMancanti = (idx) =>
+  DATI_ATTESI.filter((d) => d.campi.every((c) => (idx[c] ?? -1) < 0)).map(
+    (d) => `colonna non trovata: ${d.dato} (attesa ${etichette(d.campi)})`
+  );
 
 /** "Rig" arriva come "3 / 4" (segnati su tirati). Con un solo numero si assume
  *  che sia il numero di rigori segnati e i tirati restano ignoti. */
@@ -48,6 +87,17 @@ function splitRigori(v) {
     .map((s) => intero(s));
   if (parti.length >= 2) return { segnati: parti[0], tirati: parti[1] };
   return { segnati: parti[0] ?? null, tirati: null };
+}
+
+/** Segnati e tirati, da qualunque dei due formati il foglio usi.
+ *  Se Rc manca ma ci sono R+ e R-, i tirati si ricavano sommandoli. */
+function rigori(riga, idx) {
+  const n = (campo) => (idx[campo] >= 0 ? intero(riga[idx[campo]]) : null);
+  const segnati = n('rigSegnati');
+  if (segnati === null) return splitRigori(idx.rig >= 0 ? riga[idx.rig] : null);
+  const calciati = n('rigCalciati');
+  const sbagliati = n('rigSbagliati');
+  return { segnati, tirati: calciati ?? (sbagliati === null ? null : segnati + sbagliati) };
 }
 
 /** Legge un file di statistiche. Non tocca il db: separare lettura e scrittura
@@ -67,7 +117,7 @@ export function leggiStats(origine, stagione) {
       scartate.push({ riga: numeroRiga, motivo: 'Id mancante o non numerico', dati: riga });
       continue;
     }
-    const rig = splitRigori(idx.rig >= 0 ? riga[idx.rig] : null);
+    const rig = rigori(riga, idx);
     righe.push({
       player_id: id,
       nome: String(riga[idx.nome] ?? '').trim(),
@@ -85,7 +135,15 @@ export function leggiStats(origine, stagione) {
       esp: opz(riga, 'esp'),
     });
   }
-  return { foglio: aperto.foglio, fogli: aperto.fogli, rigaHeader: aperto.rigaHeader + 1, righe, scartate };
+  return {
+    foglio: aperto.foglio,
+    fogli: aperto.fogli,
+    rigaHeader: aperto.rigaHeader + 1,
+    righe,
+    scartate,
+    // gli avvisi viaggiano con il letto e arrivano fino all'esito dell'import
+    colonneMancanti: datiMancanti(idx),
+  };
 }
 
 /** Scrive una stagione. Idempotente sulla chiave (player_id, stagione).
@@ -141,6 +199,7 @@ export function importaStagione(letto, { controllaSoglia = true } = {}) {
     inserite,
     aggiornate,
     scartateRiga: letto.scartate,
+    colonneMancanti: letto.colonneMancanti ?? [],
     senzaGiocatore,
     inDb: getDb().prepare('SELECT count(*) AS n FROM stats WHERE stagione = ?').get(stagione).n,
   };
@@ -261,6 +320,7 @@ export function salvaEImportaStats(caricati) {
       inserite: r.inserite,
       aggiornate: r.aggiornate,
       scartate: r.scartateRiga.length,
+      colonneMancanti: r.colonneMancanti,
       senzaGiocatore: r.senzaGiocatore.length,
       inDb: r.inDb,
       backupFile,

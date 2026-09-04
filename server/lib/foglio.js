@@ -69,10 +69,16 @@ export function apriFoglio(origine, { foglioPreferito, descrizione = 'il file' }
  *  una colonna letta per sbaglio dalla posizione sbagliata. */
 export function indiciColonne(aperto, colonne, opzionali = [], descrizione = 'il file') {
   const idx = {};
-  for (const [campo, etichetta] of Object.entries(colonne)) idx[campo] = aperto.header.indexOf(normalizza(etichetta));
+  /** Un campo puo' avere piu' etichette: i fogli di Fantacalcio.it hanno
+   *  cambiato nome ad alcune colonne, e un file vecchio deve restare leggibile.
+   *  Vince la prima che si trova, nell'ordine in cui sono scritte. */
+  for (const [campo, etichetta] of Object.entries(colonne)) {
+    const alias = Array.isArray(etichetta) ? etichetta : [etichetta];
+    idx[campo] = alias.reduce((trovato, e) => (trovato >= 0 ? trovato : aperto.header.indexOf(normalizza(e))), -1);
+  }
   const mancanti = Object.entries(idx)
     .filter(([campo, i]) => i < 0 && !opzionali.includes(campo))
-    .map(([campo]) => colonne[campo]);
+    .map(([campo]) => (Array.isArray(colonne[campo]) ? colonne[campo].join(' o ') : colonne[campo]));
   if (mancanti.length)
     throw new ErroreFoglio(`${descrizione}: colonne mancanti nel foglio "${aperto.foglio}" -> ${mancanti.join(', ')}`, {
       righeGrezze: aperto.griglia.slice(0, 5),

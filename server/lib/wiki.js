@@ -82,6 +82,29 @@ function celle(riga) {
     .map(contenutoCella);
 }
 
+/** Via le barre verticali davanti alla stagione. Nascono da una riga di
+ *  wikitable che comincia con "||": celle() toglie una sola barra, e la seconda
+ *  resta attaccata al testo. La squadra e la competizione non ne soffrono
+ *  perche' passano da nomeSquadra() e dai link, che scartano tutto quello che
+ *  non e' dentro il template; la stagione invece e' testo grezzo ed e' l'unico
+ *  campo che se le porta dietro fino al db.
+ *  Toglierle qui vuol dire che non entrano piu' in archivio, con qualunque
+ *  forma abbia la tabella. */
+export const pulisciStagione = (s) =>
+  String(s ?? '')
+    .replace(/^[\s|]+/, '')
+    // Trattino finale senza anno di chiusura: "ago.2026-" e' una militanza
+    // ancora in corso, e Wikipedia la scrive cosi'. Va tolto, perche'
+    // l'ordinamento legge gli ultimi quattro caratteri: con il trattino
+    // trova "026-", cioe' l'anno 26, e la manda in cima alla carriera invece
+    // che in fondo. Senza, l'etichetta finisce con l'anno d'inizio - che per
+    // una stagione aperta e' esattamente l'anno con cui va ordinata, il piu'
+    // recente.
+    // Non ci si aggiunge un "in corso": l'ordinamento si regge sul fatto che
+    // l'etichetta finisca con l'anno, e un suffisso lo romperebbe di nuovo.
+    .replace(/[\s-]+$/, '')
+    .trim();
+
 /** Legge la tabella "Presenze e reti nei club".
  *  Colonne: Stagione, Squadra, poi terne (Competizione, Presenze, Reti) per
  *  campionato/coppe, e infine due colonne di totale che si scartano.
@@ -114,7 +137,7 @@ export function estraiCarriera(wikitext) {
       [stagione, ...resto] = c;
     } else continue;
 
-    const nomeStagione = etichetta(stagione) ?? stagione.replace(/\{\{[^}]*\}\}/g, '').trim();
+    const nomeStagione = pulisciStagione(etichetta(stagione) ?? stagione.replace(/\{\{[^}]*\}\}/g, ''));
     if (!nomeStagione || !squadraCorrente) continue;
     // Le ultime due colonne sono il totale di riga: gia' contenuto nelle terne.
     const terne = resto.slice(0, resto.length - 2);

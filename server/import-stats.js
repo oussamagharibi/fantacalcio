@@ -23,6 +23,8 @@ for (const e of esiti) {
     `[stats] ${e.stagione}: foglio "${e.foglio}" (intestazione riga ${e.rigaHeader}) | righe lette: ${e.righeLette} | ` +
       `inserite: ${e.inserite} | aggiornate: ${e.aggiornate} | scartate: ${e.senzaGiocatore.length + e.scartateRiga.length}`
   );
+  // Un dato atteso che il foglio non ha va detto: prima restava un NULL muto.
+  for (const c of e.colonneMancanti ?? []) console.warn(`[stats]   AVVISO ${c}`);
   for (const s of e.scartateRiga) console.warn(`[stats]   riga ${s.riga} scartata: ${s.motivo}`);
   if (e.senzaGiocatore.length) {
     console.warn(`[stats]   ${e.senzaGiocatore.length} senza corrispondenza nel listone (fuori dalla Serie A):`);
