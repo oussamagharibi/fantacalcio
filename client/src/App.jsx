@@ -5,6 +5,7 @@ import Listone from './Listone.jsx';
 import Situazione from './Situazione.jsx';
 import Asta from './Asta.jsx';
 import Giocatore from './Giocatore.jsx';
+import { FILTRI_VUOTI as FILTRI_ANALISI } from './analisiFiltri.js';
 
 /** Routing sull'hash invece di una libreria: cinque schermate non giustificano
  *  una dipendenza, e l'hash sopravvive al refresh senza toccare il server.
@@ -21,7 +22,9 @@ const rottaDaHash = () => {
  *  di un giocatore smonta la lista da cui si e' partiti: con i filtri in uno
  *  stato locale, il pulsante indietro avrebbe riportato a una vista azzerata. */
 const FILTRI_INIZIALI = {
-  analisi: { reparto: 'P', fascia: null, soloSegnali: false, soloTarget: false },
+  // Il reparto attivo e i filtri stanno insieme: cambiare tab non li azzera,
+  // e ognuno filtra il proprio reparto.
+  analisi: { reparto: 'P', ...FILTRI_ANALISI },
   listone: {
     ordine: { chiave: 'quotazione', crescente: false },
     ruolo: null,

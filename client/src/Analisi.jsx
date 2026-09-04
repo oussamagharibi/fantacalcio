@@ -7,6 +7,7 @@ import UploadFonte from './UploadFonte.jsx';
 import Carriera from './Carriera.jsx';
 import Xg from './Xg.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
+import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squadreDi, FILTRI_VUOTI } from './analisiFiltri.js';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
  *  titolarita'. Il testo lungo resta nel title, la card non si allarga. */
@@ -103,11 +104,13 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
   /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
      giocatore smonta questa pagina, e con i filtri in uno stato locale
      tornare indietro li avrebbe azzerati. */
-  const { reparto, fascia, soloSegnali, soloTarget } = filtri;
-  const setReparto = (v) => onFiltri({ ...filtri, reparto: typeof v === 'function' ? v(filtri.reparto) : v });
-  const setFascia = (v) => onFiltri({ ...filtri, fascia: typeof v === 'function' ? v(filtri.fascia) : v });
-  const setSoloSegnali = (v) => onFiltri({ ...filtri, soloSegnali: typeof v === 'function' ? v(filtri.soloSegnali) : v });
-  const setSoloTarget = (v) => onFiltri({ ...filtri, soloTarget: typeof v === 'function' ? v(filtri.soloTarget) : v });
+  const { reparto } = filtri;
+  /** Un solo modo di scrivere i filtri: cambiare reparto non tocca gli altri
+   *  campi, ed e' cosi' che una fascia scelta sui Difensori resta accesa
+   *  passando agli Attaccanti. */
+  const imposta = (patch) => onFiltri({ ...filtri, ...patch });
+  const setReparto = (r) => imposta({ reparto: r });
+  const commuta = (campo) => imposta({ [campo]: !filtri[campo] });
   const [batch, setBatch] = useState({ inCorso: false, righe: [] });
   const timer = useRef(null);
 
@@ -136,22 +139,19 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
     onStato(await getStato());
   };
 
-  const perReparto = useMemo(() => {
-    const m = Object.fromEntries(ORDINE_RUOLI.map((r) => [r, []]));
-    // Chi e' uscito dal listino resta nello stato per la pagina Listone, ma
-    // qui non si compra piu': fuori dai reparti.
-    for (const g of stato.giocatori) if (!g.assente_dal) m[g.ruolo]?.push(g);
-    return m;
-  }, [stato.giocatori]);
-
-  const visibili = useMemo(
-    () =>
-      (perReparto[reparto] ?? [])
-        .filter((g) => fascia === null || g.fascia === fascia)
-        .filter((g) => !soloSegnali || g.segnali.length > 0)
-        .filter((g) => !soloTarget || g.target),
-    [perReparto, reparto, fascia, soloSegnali, soloTarget]
+  const perReparto = useMemo(
+    () => Object.fromEntries(ORDINE_RUOLI.map((r) => [r, soloDelReparto(stato.giocatori, r)])),
+    [stato.giocatori]
   );
+  const squadre = useMemo(() => squadreDi(stato.giocatori), [stato.giocatori]);
+
+  // Il reparto attivo e' il totale del contatore; visibili e' il numeratore.
+  const delReparto = perReparto[reparto] ?? [];
+  const visibili = useMemo(
+    () => filtra(delReparto, filtri, stato.rosa.presi),
+    [delReparto, filtri, stato.rosa.presi]
+  );
+  const attivi = quantiAttivi(filtri);
 
   return (
     <main className="wrap largo">
@@ -182,22 +182,50 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
       </div>
 
       <div className="filtri">
+        {/* Ricerca mentre si digita: i dati sono gia' tutti nel browser, non
+            c'e' niente da aspettare e quindi niente da confermare con Invio. */}
+        <input
+          className="cerca-listone"
+          value={filtri.cerca}
+          onChange={(e) => imposta({ cerca: e.target.value })}
+          placeholder={`cerca fra i ${RUOLI[reparto].nome.toLowerCase()}`}
+        />
         <span className="etichetta">Fascia</span>
-        <button className={`chip${fascia === null ? ' on' : ''}`} onClick={() => setFascia(null)}>
-          tutte
-        </button>
         {[1, 2, 3, 4, 5].map((f) => (
-          <button key={f} className={`chip${fascia === f ? ' on' : ''}`} onClick={() => setFascia(fascia === f ? null : f)}>
+          <button
+            key={f}
+            className={`chip${filtri.fasce.includes(f) ? ' on' : ''}`}
+            onClick={() => imposta({ fasce: commutaFascia(filtri.fasce, f) })}
+          >
             {f}
           </button>
         ))}
-        <span style={{ width: 10 }} />
-        <button className={`chip${soloSegnali ? ' on' : ''}`} onClick={() => setSoloSegnali((v) => !v)}>
+        <select value={filtri.squadra} onChange={(e) => imposta({ squadra: e.target.value })}>
+          <option value="">tutte le squadre</option>
+          {squadre.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <button className={`chip${filtri.soloDisponibili ? ' on' : ''}`} onClick={() => commuta('soloDisponibili')}>
+          solo disponibili
+        </button>
+        <button className={`chip${filtri.soloSegnali ? ' on' : ''}`} onClick={() => commuta('soloSegnali')}>
           con segnali
         </button>
-        <button className={`chip${soloTarget ? ' on' : ''}`} onClick={() => setSoloTarget((v) => !v)}>
+        <button className={`chip${filtri.soloTarget ? ' on' : ''}`} onClick={() => commuta('soloTarget')}>
           ★ obiettivi
         </button>
+        {attivi > 0 && (
+          <button className="chip" onClick={() => imposta(FILTRI_VUOTI)}>
+            azzera ({attivi})
+          </button>
+        )}
+        <span className="spazio" />
+        <span className="conteggio">
+          <strong>{visibili.length}</strong> di {delReparto.length}
+        </span>
       </div>
 
       {visibili.length === 0 ? (
