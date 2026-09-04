@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
+import { classeMedia } from './Rendimento.jsx';
 import {
   MOTIVO_INSUFFICIENTE,
   arrotonda,
   cambioSquadra,
   contatoreVero,
   fantamedie,
+  golSubiti,
   infortunio,
   minutiVeri,
   rigoriFanta,
@@ -122,6 +124,7 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
   const tit = titolarita(g);
   const inf = infortunio(g);
   const rigori = rigoriFanta(g);
+  const subiti = golSubiti(g);
   const cambio = cambioSquadra(g);
   const portiere = g.ruolo === 'P';
   const diff = g.quotazione_iniziale === null ? null : g.quotazione - g.quotazione_iniziale;
@@ -254,7 +257,45 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
           </Sezione>
         )}
 
-        {s.xg && (
+        {/* Per un portiere gli expected goals non dicono niente: al loro posto,
+            nello stesso punto, quanti gol prende a partita. */}
+        {portiere && s.golSubiti && (
+          <Sezione titolo="Gol subiti" fonte="Excel fantacalcio.it">
+            <table className="det-tab">
+              <thead>
+                <tr>
+                  <th>Stagione</th>
+                  <th className="num">Presenze</th>
+                  <th className="num">Gol subiti</th>
+                  <th className="num">Media a partita</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subiti.stagioni.map((r) => (
+                  <tr key={r.stagione}>
+                    <td>{r.stagione}</td>
+                    <td className="num">{r.pv}</td>
+                    <td className="num forte">{r.gs}</td>
+                    <td className={`num scarto ${classeMedia(r.media)}`}>{r.media}</td>
+                  </tr>
+                ))}
+                <tr className="det-somma">
+                  <td>
+                    <strong>totale</strong>
+                  </td>
+                  <td className="num">{subiti.pv}</td>
+                  <td className="num forte">{subiti.gs}</td>
+                  <td className={`num scarto ${classeMedia(subiti.media)}`}>{subiti.media}</td>
+                </tr>
+              </tbody>
+            </table>
+            {/* Media pesata sulle partite, non media delle medie: una stagione
+                da tre presenze non puo' contare come una da trentotto. */}
+            <p className="muted det-nota">media pesata sulle presenze</p>
+          </Sezione>
+        )}
+
+        {!portiere && s.xg && (
           <Sezione titolo="Gol contro expected goals" fonte="Understat — calcio vero, non fanta">
             <table className="det-tab">
               <thead>

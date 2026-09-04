@@ -5,7 +5,7 @@ import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
 import UploadFonte from './UploadFonte.jsx';
 import Carriera from './Carriera.jsx';
-import Xg from './Xg.jsx';
+import Rendimento from './Rendimento.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squadreDi, FILTRI_VUOTI } from './analisiFiltri.js';
 
@@ -80,7 +80,7 @@ function CardGiocatore({ g, onStella, onApri, stato, onStato, onAvviso }) {
         <AzioniGiocatore g={g} stato={stato} onStato={onStato} onAvviso={onAvviso} />
       </div>
 
-      <Xg dati={g.xg} compatto />
+      <Rendimento g={g} compatto />
       <Carriera righe={g.carriera} ruolo={g.ruolo} />
 
       {g.note && (

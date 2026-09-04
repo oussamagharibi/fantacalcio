@@ -516,3 +516,6 @@ input[type='file'] { padding: 6px; cursor: pointer; }
   .barra { flex-wrap: wrap; }
   .griglia-card { grid-template-columns: 1fr; }
 }
+
+/* Nota sotto una tabella della scheda: dice come e' fatto un numero. */
+.det-nota { font-size: 11px; margin: 6px 0 0; }

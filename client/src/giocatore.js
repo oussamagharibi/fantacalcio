@@ -102,6 +102,30 @@ export function rigoriFanta(g) {
   };
 }
 
+/** Il rendimento di un portiere non si legge negli expected goals: un portiere
+ *  non si costruisce occasioni, e il suo xG e' zero anche nella stagione in cui
+ *  para tutto. Si legge in quanti gol prende ogni volta che scende in campo.
+ *
+ *  gs/pv per stagione, e sul totale la media pesata sulle partite: fare la
+ *  media delle medie darebbe lo stesso peso a una stagione da 3 presenze e a
+ *  una da 38.
+ *
+ *  Serve pv > 0, altrimenti non e' una media ma una divisione per zero: senza
+ *  presenze la sezione non si mostra affatto. */
+export function golSubiti(g) {
+  if (g?.ruolo !== 'P') return null;
+  const righe = (g?.stats ?? []).filter((r) => (r.pv ?? 0) > 0 && r.gs !== null && r.gs !== undefined);
+  if (!righe.length) return null;
+  const pv = righe.reduce((s, r) => s + r.pv, 0);
+  const gs = righe.reduce((s, r) => s + r.gs, 0);
+  return {
+    stagioni: righe.map((r) => ({ stagione: r.stagione, pv: r.pv, gs: r.gs, media: arrotonda(r.gs / r.pv, 2) })),
+    pv,
+    gs,
+    media: arrotonda(gs / pv, 2),
+  };
+}
+
 const nucleo = (s) =>
   String(s ?? '')
     .normalize('NFD')
@@ -158,6 +182,7 @@ export function sezioni(g) {
     titolarita: !!titolarita(g),
     infortunio: !!infortunio(g),
     carriera: (g?.carriera ?? []).length > 0,
+    golSubiti: !!golSubiti(g),
     rigori: !!rigoriFanta(g),
     cambioSquadra: !!cambioSquadra(g)?.cambiata,
     nota: !!g?.note,
