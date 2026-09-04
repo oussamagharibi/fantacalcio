@@ -114,7 +114,7 @@ export default function App() {
       <nav className="barra">
         {/* Senza configurazione non c'e' una "mia squadra" da mostrare: la
             pagina Analisi si usa lo stesso, quindi la barra non deve dipenderne. */}
-        <span className="marchio">{config.configurata ? config.config.miaSquadra : 'Asta Fantacalcio'}</span>
+        <span className="marchio">{config.configurata ? config.config.miaSquadra : 'FantaNexi'}</span>
         {PAGINE.map((p) => (
           <button key={p} className={pagina === p ? 'tab attiva' : 'tab'} onClick={() => vai(p)}>
             {NOMI[p]}

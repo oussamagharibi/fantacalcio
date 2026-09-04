@@ -32,11 +32,14 @@ export const SQUADRE = {
 
 /** Colore per ruolo, l'accento che tiene insieme tutta l'interfaccia:
  *  lo stesso giallo del portiere sul badge, sul tab, sullo slot vuoto. */
+/** Gli stessi valori dei token --P/--D/--C/--A in styles.css: qui servono
+ *  come stringhe per gli stili inline dei pallini e dei badge. Il C e' viola e
+ *  non blu, per non confondersi col blu aziendale. */
 export const RUOLI = {
-  P: { nome: 'Portieri', colore: '#f2c14e' },
-  D: { nome: 'Difensori', colore: '#4caf7d' },
-  C: { nome: 'Centrocampisti', colore: '#4ea1ff' },
-  A: { nome: 'Attaccanti', colore: '#ef5b5b' },
+  P: { nome: 'Portieri', colore: '#f2b33d' },
+  D: { nome: 'Difensori', colore: '#3fbf7f' },
+  C: { nome: 'Centrocampisti', colore: '#bb7af0' },
+  A: { nome: 'Attaccanti', colore: '#ff6b5e' },
 };
 
 export const ORDINE_RUOLI = ['P', 'D', 'C', 'A'];

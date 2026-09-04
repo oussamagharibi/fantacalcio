@@ -2,20 +2,45 @@
    niente che possa fallire su Railway. La gerarchia la fanno i pesi. */
 :root {
   color-scheme: dark;
-  --bg: #0d0f14;          /* pagina: il livello piu' scuro */
-  --card: #171a22;        /* card: un gradino sopra la pagina */
-  --card-alta: #1f2430;   /* hover e riquadri annidati */
-  --fg: #eef1f7;
-  --muted: #8b90a0;
-  --line: #262b36;
-  --acc: #4ea1ff;
-  --ko: #ef5b5b;
-  --ok: #4caf7d;
-  --oro: #ffc857;
-  --P: #f2c14e;
-  --D: #4caf7d;
-  --C: #4ea1ff;
-  --A: #ef5b5b;
+
+  /* ------------------------------------------------------ identita' FantaNexi
+     I tre colori del marchio. Sono l'unico punto da cambiare se i valori
+     aziendali esatti sono altri: tutto il resto ne discende. */
+  --nexi-blu: #1b4fd8;         /* blu principale: RIEMPIMENTO, non testo */
+  --nexi-blu-scuro: #0a1e4a;   /* variante scura: base dei tre livelli */
+  --nexi-accento: #4da6ff;     /* blu chiaro: testo e bordi attivi su fondo scuro */
+
+  /* Il blu aziendale come TESTO su fondo scuro sta a 2.96:1, sotto ogni
+     soglia. Per questo riempie (barra, pulsanti, badge) e non scrive: quando
+     serve un blu leggibile si usa l'accento, che su questi fondi sta sopra 6.4. */
+
+  /* --------------------------------------------------------- i tre livelli
+     Non grigi neutri: sono il blu scuro del marchio mescolato col nero al 35,
+     62 e 95 per cento. La dominante blu si vede, la pagina resta quasi nera. */
+  --bg: #040b1a;          /* pagina: il livello piu' scuro */
+  --card: #06132e;        /* card: un gradino sopra la pagina */
+  --card-alta: #0a1d46;   /* rilievo: lotto aperto, riga selezionata, hover */
+
+  --fg: #eef2fa;          /* 17.5 : 1 sulla pagina */
+  --muted: #93a2bf;       /* 7.6 : 1 sulla pagina, 6.4 sul rilievo */
+  /* Bordo delle superfici: blu aziendale al 20%, come da specifica. Su un
+     fondo scuro si posa come una linea appena bluastra. */
+  --line: rgba(27, 79, 216, 0.2);
+  --linea-forte: rgba(77, 166, 255, 0.55);
+
+  --acc: var(--nexi-accento);
+  --ko: #ff6b5e;
+  --ok: #3fbf7f;
+  --oro: #f2b33d;
+
+  /* Ruoli: quattro tinte lontane fra loro E dal blu aziendale. Il C era
+     #4ea1ff, cioe' identico all'accento: si confondeva per costruzione.
+     Spostato su viola, che dista 50 gradi dal blu Nexi, 63 dall'accento e
+     123 dal verde dei difensori. */
+  --P: #f2b33d;
+  --D: #3fbf7f;
+  --C: #bb7af0;
+  --A: #ff6b5e;
   --r: 10px;
   --veloce: 90ms;
   --media: 130ms;
@@ -30,7 +55,7 @@ body {
 h1, h2, h3 { margin: 0; font-weight: 650; }
 button { font: inherit; cursor: pointer; border: 0; border-radius: 8px; }
 input, select {
-  background: #10131a; color: var(--fg); border: 1px solid var(--line);
+  background: rgba(4, 11, 26, 0.72); color: var(--fg); border: 1px solid var(--line);
   border-radius: 8px; padding: 8px 10px; font: inherit;
 }
 input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: 0; }
@@ -44,10 +69,18 @@ input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: 0; }
 /* ---------------------------------------------------------- barra in alto */
 .barra {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 18px; background: #12151c; border-bottom: 1px solid var(--line);
+  padding: 9px 18px; background: var(--nexi-blu-scuro);
+  border-bottom: 1px solid var(--linea-forte);
   position: sticky; top: 0; z-index: 20;
 }
-.marchio { font-weight: 700; letter-spacing: 0.2px; margin-right: 6px; }
+/* Il badge del marchio e' l'unico posto dove il blu aziendale sta a pieno
+   campo con del testo sopra: bianco su #1b4fd8 fa 6.65 : 1. */
+.marchio {
+  font-weight: 700; letter-spacing: 0.2px; margin-right: 6px;
+  background: var(--nexi-blu); color: #fff; padding: 5px 11px; border-radius: 7px;
+}
+.barra .tab:hover { background: rgba(77, 166, 255, 0.12); }
+.barra .tab.attiva { background: rgba(77, 166, 255, 0.18); border-color: var(--linea-forte); }
 .tab {
   background: transparent; color: var(--muted); padding: 7px 16px; font-weight: 600;
   border: 1px solid transparent; transition: color var(--veloce), background var(--veloce);
@@ -66,10 +99,10 @@ input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: 0; }
 .badge-giocatore {
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 50%; border: 2px solid; font-weight: 700; flex: 0 0 auto;
-  background: #10131a;
+  background: rgba(4, 11, 26, 0.72);
 }
 .fascia-pallini { display: inline-flex; gap: 3px; align-items: center; }
-.fascia-pallini i { width: 6px; height: 6px; border-radius: 50%; background: #333a48; display: block; }
+.fascia-pallini i { width: 6px; height: 6px; border-radius: 50%; background: rgba(147, 162, 191, 0.28); display: block; }
 
 /* ------------------------------------------------------------------- chip */
 .chip {
@@ -136,12 +169,12 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
   font-size: 12px; font-weight: 600;
 }
 .nota-corpo {
-  margin-top: 8px; padding: 9px 10px; background: #10131a; border-radius: 8px;
+  margin-top: 8px; padding: 9px 10px; background: rgba(4, 11, 26, 0.72); border-radius: 8px;
   border-left: 2px solid var(--acc); font-size: 13px; white-space: pre-wrap;
 }
 .nota-data { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
 .avanzamento {
-  background: #10131a; border: 1px solid var(--line); border-radius: var(--r);
+  background: rgba(4, 11, 26, 0.72); border: 1px solid var(--line); border-radius: var(--r);
   padding: 10px 12px; font-size: 12px; max-height: 200px; overflow: auto;
   white-space: pre-wrap; margin-bottom: 14px;
 }
@@ -170,7 +203,7 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 .slot .prezzo { font-weight: 700; font-variant-numeric: tabular-nums; }
 .slot.flash { animation: flash 420ms ease-out; }
 @keyframes flash {
-  0% { background: var(--colore-ruolo); color: #0d0f14; }
+  0% { background: var(--colore-ruolo); color: var(--bg); }
   100% { background: var(--card-alta); color: var(--fg); }
 }
 
@@ -184,11 +217,11 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 }
 .risultati li:hover, .risultati li.evidenziato { background: var(--card-alta); }
 kbd {
-  border: 1px solid var(--line); background: #10131a; border-radius: 5px;
+  border: 1px solid var(--line); background: rgba(4, 11, 26, 0.72); border-radius: 5px;
   padding: 1px 7px; font-size: 12px; color: var(--muted); font-family: inherit;
 }
 
-.lotto { border: 1px solid var(--acc); animation: entra 100ms ease-out; }
+.lotto { background: var(--card-alta); border: 1px solid var(--linea-forte); animation: entra 100ms ease-out; }
 @keyframes entra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .lotto-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
 .lotto-nome { font-size: 25px; font-weight: 750; line-height: 1.1; }
@@ -199,17 +232,17 @@ kbd {
 .lotto-dati strong { color: var(--fg); font-size: 16px; }
 .azioni { display: flex; gap: 9px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px; }
 .azioni input { width: 110px; font-size: 19px; text-align: right; }
-.bottone { background: var(--acc); color: #08111e; padding: 11px 18px; font-weight: 700;
+.bottone { background: var(--nexi-blu); color: #fff; padding: 11px 18px; font-weight: 700;
   transition: filter var(--veloce); }
 .bottone:hover { filter: brightness(1.1); }
 .bottone.neutro { background: var(--card-alta); color: var(--fg); border: 1px solid var(--line); }
 
 .barra-conta { margin-bottom: 12px; }
 .barra-conta .riga1 { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
-.barra-conta .traccia { height: 6px; background: #10131a; border-radius: 3px; overflow: hidden; }
+.barra-conta .traccia { height: 6px; background: rgba(4, 11, 26, 0.72); border-radius: 3px; overflow: hidden; }
 .barra-conta .riempi { height: 100%; border-radius: 3px; transition: width var(--media) linear; }
 .fasce-riga { display: flex; gap: 4px; margin-top: 5px; font-size: 11px; color: var(--muted); }
-.fasce-riga span { flex: 1; text-align: center; background: #10131a; border-radius: 4px; padding: 2px 0; }
+.fasce-riga span { flex: 1; text-align: center; background: rgba(4, 11, 26, 0.72); border-radius: 4px; padding: 2px 0; }
 
 .toast {
   position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
@@ -247,7 +280,7 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .budget-riga { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
 .budget-riga > :nth-child(2) { flex: 1; font-variant-numeric: tabular-nums; }
 .budget-pct { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
-.budget-traccia { height: 5px; background: #10131a; border-radius: 3px; overflow: hidden; margin: 7px 0 6px; }
+.budget-traccia { height: 5px; background: rgba(4, 11, 26, 0.72); border-radius: 3px; overflow: hidden; margin: 7px 0 6px; }
 .budget-speso { height: 100%; background: var(--acc); border-radius: 3px; transition: width var(--media) linear; }
 .budget-riga.media { margin: 0; padding-top: 5px; border-top: 1px solid var(--line); }
 
@@ -255,7 +288,7 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .proiezione {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px;
   margin-top: 12px; padding: 9px 11px; border-radius: 8px;
-  background: #10131a; border: 1px solid var(--line); font-size: 13px;
+  background: rgba(4, 11, 26, 0.72); border: 1px solid var(--line); font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 .proiezione strong { color: var(--fg); }
@@ -294,7 +327,7 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .carriera-tab .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .carriera-fonte { font-size: 11px; color: var(--muted); margin-top: 4px; }
 .banner { border: 1px solid var(--oro); border-radius: var(--r); padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
-.banner code { background: #10131a; border-radius: 4px; padding: 1px 5px; font-family: inherit; }
+.banner code { background: rgba(4, 11, 26, 0.72); border-radius: 4px; padding: 1px 5px; font-family: inherit; }
 
 /* --------------------------------------------- preparazione e sezione dati */
 .preparazione { display: flex; justify-content: center; padding: 26px 18px; }
@@ -325,13 +358,13 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .filtri .chip .punto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .tabella-listone { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .tabella-listone th, .tabella-listone td { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-.tabella-listone th { position: sticky; top: 52px; background: #12151c; color: var(--muted);
+.tabella-listone th { position: sticky; top: 52px; background: var(--nexi-blu-scuro); color: var(--muted);
   font-weight: 600; white-space: nowrap; z-index: 2; }
 .tabella-listone th.ordinabile { cursor: pointer; user-select: none; }
 .tabella-listone th.ordinabile:hover { color: var(--fg); }
 .tabella-listone th.num, .tabella-listone td.num { text-align: right; }
 .tabella-listone th.stretta, .tabella-listone td.stretta { width: 34px; text-align: center; }
-.tabella-listone tbody tr:hover { background: var(--card); }
+.tabella-listone tbody tr:hover { background: var(--card-alta); }
 .tabella-listone tr.uscito { opacity: 0.5; }
 .tabella-listone td.sq { white-space: nowrap; }
 .tabella-listone td.sq .badge-squadra { vertical-align: -3px; margin-right: 4px; }
@@ -358,6 +391,13 @@ input[type='file'] { padding: 6px; cursor: pointer; }
   transition: color var(--veloce), border-color var(--veloce);
 }
 .az:hover:not(:disabled) { color: var(--fg); border-color: var(--acc); }
+/* "Preso da me" e' l'azione principale: dove c'e' spazio la si riempie col blu
+   aziendale. Nelle tabelle resta in punta di penna, perche' cinquecento
+   pulsanti pieni sarebbero una parete blu. */
+.az.primaria { background: var(--nexi-blu); border-color: var(--nexi-blu); color: #fff; }
+.az.primaria:hover:not(:disabled) { background: #2a5fe6; border-color: #2a5fe6; color: #fff; }
+.az-gruppo.compatto .az.primaria { background: transparent; color: var(--nexi-accento); border-color: var(--linea-forte); }
+.az-gruppo.compatto .az.primaria:hover:not(:disabled) { background: rgba(77, 166, 255, 0.14); }
 .az:disabled { opacity: 0.4; cursor: not-allowed; }
 .az.ok { color: var(--ok); border-color: var(--ok); }
 .az.ko { color: var(--ko); border-color: var(--ko); }
@@ -449,12 +489,12 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .det-stelle { display: inline-flex; gap: 3px; align-items: center; }
 .det-stelle i {
   width: 13px; height: 13px; display: block; border-radius: 3px;
-  background: #2b3140; border: 1px solid var(--line);
+  background: rgba(147, 162, 191, 0.22); border: 1px solid var(--line);
 }
 .det-stelle i.piena { background: var(--oro); border-color: var(--oro); }
 /* mezza stella: meta' oro e meta' spenta, perche' i bonus valgono 0.5 e 0.3 */
 .det-stelle i.mezza { background: linear-gradient(90deg, var(--oro) 50%, #2b3140 50%); border-color: var(--oro); }
-.det-conto { margin-top: 8px; background: #10131a; border-radius: 8px; padding: 9px 10px; font-size: 12px; }
+.det-conto { margin-top: 8px; background: rgba(4, 11, 26, 0.72); border-radius: 8px; padding: 9px 10px; font-size: 12px; }
 .det-conto table { border-collapse: collapse; width: 100%; }
 .det-conto td { padding: 3px 6px; vertical-align: top; }
 .det-delta { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; width: 1%; }

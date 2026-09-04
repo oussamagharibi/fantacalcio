@@ -102,7 +102,7 @@ export default function AzioniGiocatore({
     return (
       <div className={classe}>
         <button
-          className="az"
+          className="az primaria"
           disabled={!configurata || inCorso}
           title={configurata ? 'registra il prezzo e mettilo in rosa' : "prima prepara l'asta nella pagina Asta"}
           onClick={() => {
