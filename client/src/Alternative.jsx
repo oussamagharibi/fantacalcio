@@ -2,6 +2,8 @@ import { BadgeGiocatore } from './Badge.jsx';
 import { alternative, etichetta, ETICHETTE_STATO } from './alternative.js';
 import { scriviPercentuale } from './ballottaggi.js';
 import { PannelloBallottaggi } from './Ballottaggi.jsx';
+import Gerarchie from './Gerarchie.jsx';
+import { perGiocatore as gerarchieDi } from './gerarchie.js';
 
 /** La colonna di destra del pannello centrale.
  *
@@ -62,12 +64,20 @@ export function PannelloAlternative({ stato, g, onApri }) {
  *  disegnarla o allargare il lotto a tutta larghezza. Chiederlo al componente
  *  a cose fatte avrebbe voluto dire misurare il DOM. */
 export const colonnaDestraPiena = (stato, lotto) =>
-  lotto ? alternative(stato.giocatori, lotto, stato.rosa.presi, stato.ballottaggi).length > 0 : true;
+  lotto
+    ? alternative(stato.giocatori, lotto, stato.rosa.presi, stato.ballottaggi).length > 0 ||
+      gerarchieDi(stato.gerarchie, lotto.id).length > 0
+    : true;
 
 export function ColonnaDestra({ stato, lotto, onApri }) {
-  return lotto ? (
-    <PannelloAlternative stato={stato} g={lotto} onApri={onApri} />
-  ) : (
-    <PannelloBallottaggi stato={stato} onApri={onApri} />
+  if (!lotto) return <PannelloBallottaggi stato={stato} onApri={onApri} />;
+  // Prima quello che una fonte dichiara, poi quello che deduciamo noi: se le
+  // due cose fossero mescolate non si distinguerebbe piu chi lo ha scritto da
+  // chi lo ha calcolato.
+  return (
+    <div className="colonna-destra">
+      <Gerarchie stato={stato} g={lotto} onApri={onApri} />
+      <PannelloAlternative stato={stato} g={lotto} onApri={onApri} />
+    </div>
   );
 }

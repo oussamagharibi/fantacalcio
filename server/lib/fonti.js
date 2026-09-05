@@ -22,6 +22,27 @@ const SEED = [
   { nome: 'Mondocalcio infortunati', attiva: true, tipo: 'pagina', url: 'https://www.mondocalciomagazine.it/infortunati-serie-a/' },
   // L'url di Sky cambia ogni giornata: si scopre, non si fissa.
   { nome: 'Sky indisponibili', attiva: true, tipo: 'pagina', url: null },
+  // Le tre pagine delle gerarchie: divise per squadra, una sezione ciascuna.
+  // Non entrano nel giro di "Aggiorna tutto" perche' costano una chiamata al
+  // modello per squadra: si leggono con "npm run gerarchie -- --yes".
+  {
+    nome: 'SOS Fanta formazioni tipo',
+    attiva: true,
+    tipo: 'pagina',
+    url: 'https://www.sosfanta.com/asta-fantacalcio/seriea-tutte-formazioni-tipo-fantacalcio-2026-2027-asta-consigli-chi-prendere/',
+  },
+  {
+    nome: "Calcio d'Angolo formazioni tipo",
+    attiva: true,
+    tipo: 'pagina',
+    url: 'https://calciodangolo.com/fantacalcio-come-giocherebbero-oggi-formazioni-tipo-serie-a-2026-2027/',
+  },
+  {
+    nome: 'SOS Fanta gerarchie portieri',
+    attiva: true,
+    tipo: 'pagina',
+    url: 'https://www.sosfanta.com/consigli-fantacalcio/portieri/fantacalcio-asta-tutti-portieri-gerarchie-seriea-venti-squadre-campionato/',
+  },
 ];
 
 /** Homepage da cui scoprire il feed quando url e' null. Non e' un elenco di

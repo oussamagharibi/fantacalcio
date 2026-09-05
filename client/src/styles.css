@@ -193,6 +193,21 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 }
 .centro-due.piena { grid-template-columns: minmax(0, 1fr); }
 
+.colonna-destra { display: flex; flex-direction: column; gap: 12px; }
+
+/* "Vice dichiarato": quello che una fonte afferma. Sta sopra le dedotte e si
+   distingue a colpo d'occhio, perche' le due cose non valgono uguale. */
+.ger-pannello { border-left: 3px solid var(--oro); }
+.ger-lista { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ger-riga { padding: 7px 8px; border-radius: 8px; background: var(--card-alta); }
+.ger-coppia { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.ger-posizione { font-size: 11.5px; color: var(--muted); }
+.ger-provenienza { margin-top: 4px; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ger-cert { font-size: 10.5px; padding: 1px 6px; }
+.ger-cert.alta { color: var(--ok); border-color: var(--ok); }
+.ger-cert.media { color: var(--oro); border-color: var(--oro); }
+.ger-cert.bassa { color: var(--muted); }
+
 .alt-avvertenza { font-size: 11.5px; color: var(--muted); margin: -6px 0 10px; }
 .alt-lista { list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .alt-riga {

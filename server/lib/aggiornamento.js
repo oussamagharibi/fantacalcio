@@ -4,6 +4,7 @@ import { raccogli, associa, perGiocatore, salvaNota, GIORNI_MAX, CARATTERI_MINIM
 import { stimaCosto, costoReale, chiaveMancante, generaNota, conFonti, nuovoClient, MODELLO, PREZZO } from './analisi.js';
 import { raccogliSegnali, contaSegnali, FONTI_CON_PARSER, PAGINE } from './fantacalcio.js';
 import { raccogliInfortuni, FONTI_INFORTUNI, PAGINE_INFORTUNI } from './infortuni.js';
+import { FONTI_GERARCHIE } from './gerarchie.js';
 
 /** L'aggiornamento completo delle fonti, in un modulo invece che in uno script.
  *
@@ -19,9 +20,12 @@ import { raccogliInfortuni, FONTI_INFORTUNI, PAGINE_INFORTUNI } from './infortun
 
 const MIN_ARTICOLI = 2;
 
-/** Tutte le fonti con un parser dedicato: restano fuori dal percorso generico,
- *  altrimenti finirebbero anche in articles e dentro associa(). */
-export const TUTTE_CON_PARSER = new Set([...FONTI_CON_PARSER, ...FONTI_INFORTUNI]);
+/** Tutte le fonti che NON passano dal percorso generico degli articoli.
+ *  Quelle con un parser dedicato finirebbero altrimenti anche in articles e
+ *  dentro associa(); le tre pagine delle gerarchie non sono notizie e costano
+ *  una chiamata al modello per squadra, quindi hanno un giro tutto loro
+ *  (npm run gerarchie) e qui non devono nemmeno essere scaricate. */
+export const TUTTE_CON_PARSER = new Set([...FONTI_CON_PARSER, ...FONTI_INFORTUNI, ...FONTI_GERARCHIE]);
 
 /** Da messaggio tecnico a frase che si puo' leggere a schermo.
  *  I raccoglitori appiattiscono gia' l'errore in una stringa ("HTTP 403",

@@ -127,6 +127,21 @@ CREATE TABLE IF NOT EXISTS ballottaggi (
   PRIMARY KEY (player_id_1, player_id_2)
 );
 
+-- Gerarchie titolare/vice estratte con Claude da pagine divise per squadra.
+-- Una riga per fonte: due siti che dicono la stessa coppia restano due righe,
+-- e vederle entrambe e' il punto - due fonti che concordano sono un segnale
+-- forte. La certezza e' quella dichiarata dal modello: alta se il testo lo dice
+-- ('X e' il vice di Y'), media se si deduce dalla formazione, bassa se incerto.
+CREATE TABLE IF NOT EXISTS gerarchie (
+  player_id_titolare INTEGER NOT NULL REFERENCES players(id),
+  player_id_alternativa INTEGER NOT NULL REFERENCES players(id),
+  posizione TEXT,
+  certezza TEXT,
+  fonte TEXT NOT NULL DEFAULT '',
+  data TEXT,
+  PRIMARY KEY (player_id_titolare, player_id_alternativa, fonte)
+);
+
 CREATE TABLE IF NOT EXISTS articles (
   url TEXT PRIMARY KEY,
   titolo TEXT,

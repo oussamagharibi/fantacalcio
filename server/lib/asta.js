@@ -184,6 +184,39 @@ export function ballottaggi() {
     }));
 }
 
+/** Le gerarchie titolare/vice estratte con Claude dalle pagine divise per
+ *  squadra. Righe di fonti diverse convivono: due siti che dicono la stessa
+ *  coppia sono due righe, e vederle entrambe e il punto.
+ *  Si portano tutte, certezza compresa: e la pagina a decidere cosa mostrare,
+ *  perche una riga a certezza bassa resta utile a chi apre la scheda anche se
+ *  non merita il pannello dell asta. */
+export function gerarchie() {
+  return getDb()
+    .prepare(
+      `SELECT g.player_id_titolare, g.player_id_alternativa, g.posizione, g.certezza, g.fonte, g.data,
+              t.nome AS nome_titolare, t.ruolo AS ruolo_titolare, t.squadra AS squadra_titolare,
+              a.nome AS nome_alternativa, a.ruolo AS ruolo_alternativa, a.quotazione AS quotazione_alternativa
+         FROM gerarchie g
+         JOIN players t ON t.id = g.player_id_titolare
+         JOIN players a ON a.id = g.player_id_alternativa
+        ORDER BY t.nome, g.certezza, g.fonte`
+    )
+    .all()
+    .map((r) => ({
+      titolare: { id: r.player_id_titolare, nome: r.nome_titolare, ruolo: r.ruolo_titolare, squadra: r.squadra_titolare },
+      alternativa: {
+        id: r.player_id_alternativa,
+        nome: r.nome_alternativa,
+        ruolo: r.ruolo_alternativa,
+        quotazione: r.quotazione_alternativa,
+      },
+      posizione: r.posizione,
+      certezza: r.certezza,
+      fonte: r.fonte,
+      data: r.data,
+    }));
+}
+
 /** statsVuote dice all'interfaccia di avvisare che manca lo storico fanta:
  *  Wikipedia da' presenze e gol, la fantamedia solo gli Excel di fantacalcio.it. */
 export const stato = () => ({
@@ -192,6 +225,7 @@ export const stato = () => ({
   rosa: rosa(),
   restanti: restanti(),
   ballottaggi: ballottaggi(),
+  gerarchie: gerarchie(),
   statsVuote: getDb().prepare('SELECT count(*) AS n FROM stats').get().n === 0,
 });
 
