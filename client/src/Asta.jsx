@@ -7,6 +7,7 @@ import { avvisoSlotPieno, difensoriAmmessi, promemoriaDifensori } from './regola
 import Carriera from './Carriera.jsx';
 import Rendimento from './Rendimento.jsx';
 import Preparazione from './Preparazione.jsx';
+import { PannelloBallottaggi } from './Ballottaggi.jsx';
 import { postReset } from './api.js';
 
 const MIN_LETTERE = 3;
@@ -313,7 +314,14 @@ L'operazione non si annulla. Procedere?`
               ))}
             </ol>
           </div>
-        ) : (
+        ) : null}
+
+        {/* Lo spazio sotto la ricerca era vuoto. I ballottaggi ci stanno bene:
+            riguardano chi ho gia' in rosa, quindi si guardano fra un lotto e
+            l'altro, non mentre si sta battendo un giocatore. */}
+        {!lotto && <PannelloBallottaggi stato={stato} onApri={onApri} />}
+
+        {lotto && (
           <div className="pannello lotto">
             <div className="lotto-testa">
               <div style={{ minWidth: 0 }}>

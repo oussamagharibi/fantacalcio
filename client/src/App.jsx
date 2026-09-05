@@ -152,6 +152,7 @@ export default function App() {
           onStato={setStato}
           onAvviso={avvisa}
           onIndietro={indietro}
+          onApri={apri}
           provenienza={NOMI[provenienza]}
         />
       )}

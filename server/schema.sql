@@ -108,6 +108,25 @@ CREATE TABLE IF NOT EXISTS segnali (
   PRIMARY KEY (player_id, tipo, fonte)
 );
 
+-- Ballottaggi delle probabili formazioni: due giocatori che il sito mette a
+-- confronto per la stessa scelta di formazione.
+-- Si salva UNA percentuale sola, quella del titolare (player_id_1). Quella del
+-- secondo non e' un dato misurato: nel grafico e' sempre 100 meno la prima,
+-- mentre lo stesso sito, nella lista titolari, gli attribuisce un'altra
+-- probabilita'. La sua vera titolarita' sta in segnali, come per tutti.
+-- Non e' detto che i due abbiano lo stesso ruolo: in 6 casi su 23 non lo hanno,
+-- perche' la scelta e' di modulo e non di maglia.
+CREATE TABLE IF NOT EXISTS ballottaggi (
+  player_id_1 INTEGER NOT NULL REFERENCES players(id),
+  player_id_2 INTEGER NOT NULL REFERENCES players(id),
+  squadra TEXT,
+  perc_titolare INTEGER,
+  nota TEXT,
+  fonte TEXT NOT NULL DEFAULT '',
+  data TEXT,
+  PRIMARY KEY (player_id_1, player_id_2)
+);
+
 CREATE TABLE IF NOT EXISTS articles (
   url TEXT PRIMARY KEY,
   titolo TEXT,

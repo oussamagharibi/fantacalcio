@@ -97,6 +97,107 @@ export function leggiProbabili(html) {
   return voci;
 }
 
+/** Il testo del segnale di titolarita' lo scrive leggiProbabili qui sopra:
+ *  "titolare (60% di impiego stimato)". Questa funzione ne rilegge il numero.
+ *  Le due stanno a tre righe di distanza di proposito: chi cambia il formato
+ *  vede subito anche chi lo legge. L'alternativa era una colonna in piu' in
+ *  segnali per un numero che serve a una schermata sola. */
+export const percentualeTitolarita = (testo) => {
+  const m = /(\d+)%/.exec(String(testo ?? ''));
+  return m ? Number(m[1]) : null;
+};
+
+// ---------------------------------------------------------- ballottaggi
+
+/** I ballottaggi stanno nella STESSA pagina delle probabili formazioni, in una
+ *  sezione a parte:
+ *
+ *    <section class="ballots">
+ *      <div class="content">                        una per squadra
+ *        <img class="team-badge" title="Venezia">   la squadra sta qui
+ *        <div class="ballot">
+ *          <ul class="ballot-list">
+ *            <li class="dot source-1"> <a href=".../venezia/mazzocchi/5481">Mazzocchi</a>
+ *                                      <strong class="percentage">55%</strong>
+ *            <li class="dot source-2"> ... Hainaut ... 45%
+ *            <li class="comment">con quest'ultimo a tutta fascia ...
+ *
+ *  Della coppia si tiene UNA sola percentuale, quella di source-1.
+ *  Quella di source-2 non e' un dato: su 23 ballottaggi e' sempre esattamente
+ *  100 meno la prima, mentre la probabilita' che il sito attribuisce a quello
+ *  stesso giocatore nella lista titolari e' un'altra (Cichella: 40% nel
+ *  grafico, 60% nella lista). Il grafico e' un numero solo disegnato in due
+ *  fette, e salvare la seconda fetta come misura sarebbe inventarsi un dato. */
+export function leggiBallottaggi(html) {
+  const coppie = [];
+  for (const sezione of String(html ?? '').matchAll(/<section class="ballots">([\s\S]*?)<\/section>/gi)) {
+    for (const blocco of sezione[1].split(/<div class="content">/i).slice(1)) {
+      const badge = /<img[^>]*class="team-badge"[^>]*>/i.exec(blocco)?.[0] ?? '';
+      const squadra = pulisci(/title="([^"]*)"/i.exec(badge)?.[1] ?? '');
+      if (!squadra) continue;
+      for (const lista of blocco.matchAll(/<ul class="ballot-list">([\s\S]*?)<\/ul>/gi)) {
+        const voci = [...lista[1].matchAll(/<li class="dot source-(\d+)">([\s\S]*?)<\/li>/gi)];
+        // Sempre due. Se un giorno ne arrivassero tre, meglio saltare la voce
+        // che decidere da soli quali due tenere.
+        if (voci.length !== 2) continue;
+        const [primo] = linkGiocatori(voci[0][2]);
+        const [secondo] = linkGiocatori(voci[1][2]);
+        if (!primo || !secondo) continue;
+        const perc = /<strong class="percentage">\s*(\d+)\s*%/i.exec(voci[0][2])?.[1];
+        if (!perc) continue;
+        coppie.push({
+          squadra,
+          titolare: primo,
+          alternativa: secondo,
+          percentuale: Number(perc),
+          nota: pulisci(/<li class="comment">([\s\S]*?)<\/li>/i.exec(lista[1])?.[1] ?? '') || null,
+        });
+      }
+    }
+  }
+  return coppie;
+}
+
+/** Una coppia con un solo giocatore riconosciuto non e' mezza informazione,
+ *  e' nessuna informazione: si scarta intera. */
+export function abbinaBallottaggi(coppie) {
+  const esistono = new Set(getDb().prepare('SELECT id FROM players').all().map((r) => r.id));
+  const abbinate = [];
+  const scartate = [];
+  for (const c of coppie) {
+    const uno = esistono.has(c.titolare.id);
+    const due = esistono.has(c.alternativa.id);
+    if (uno && due) abbinate.push(c);
+    else
+      scartate.push({
+        ...c,
+        motivo: `${[!uno && c.titolare.nome, !due && c.alternativa.nome].filter(Boolean).join(' e ')} non nel listone`,
+      });
+  }
+  return { abbinate, scartate };
+}
+
+/** Fotografia, come i segnali: a ogni giro si riscrive tutto quello che viene
+ *  da questa fonte. Un ballottaggio risolto deve sparire, non restare. */
+export function salvaBallottaggi(coppie, fonte, data) {
+  return tx((d) => {
+    const rimossi = d.prepare('DELETE FROM ballottaggi WHERE fonte = ?').run(fonte).changes;
+    const ins = d.prepare(
+      `INSERT INTO ballottaggi (player_id_1, player_id_2, squadra, perc_titolare, nota, fonte, data)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(player_id_1, player_id_2) DO UPDATE SET
+         squadra = excluded.squadra, perc_titolare = excluded.perc_titolare,
+         nota = excluded.nota, fonte = excluded.fonte, data = excluded.data`
+    );
+    let scritte = 0;
+    for (const c of coppie) {
+      ins.run(c.titolare.id, c.alternativa.id, c.squadra, c.percentuale, c.nota, fonte, data);
+      scritte++;
+    }
+    return { rimossi, scritte };
+  });
+}
+
 export const PAGINE = [
   {
     fonte: 'Fantacalcio infortunati',
@@ -115,6 +216,10 @@ export const PAGINE = [
     tipo: 'titolarita',
     url: 'https://www.fantacalcio.it/probabili-formazioni-serie-a',
     leggi: leggiProbabili,
+    /** I ballottaggi vivono nella stessa pagina: si leggono dallo stesso HTML
+     *  invece di scaricarla una seconda volta. Vanno in una tabella loro, non
+     *  in segnali, perche' riguardano due giocatori e non uno. */
+    anche: { nome: 'ballottaggi', leggi: leggiBallottaggi, abbina: abbinaBallottaggi, salva: salvaBallottaggi },
   },
 ];
 
@@ -224,9 +329,26 @@ export async function raccogliSegnali(fontiAttive, log = () => {}) {
       // sulla chiave (player_id, tipo): tiene la prima, che e' la piu' alta in lista.
       const viste = new Set();
       const uniche = abbinate.filter((r) => !viste.has(r.player_id) && viste.add(r.player_id));
-      const { scritti, rimossi } = salvaSegnali(p.tipo, uniche, p.fonte, new Date().toISOString());
+      const adesso = new Date().toISOString();
+      const { scritti, rimossi } = salvaSegnali(p.tipo, uniche, p.fonte, adesso);
       esito.abbinate = scritti;
       esito.rimossi = rimossi;
+
+      // Il secondo raccolto della stessa pagina, quando c'e'. Ha il suo
+      // try: se i ballottaggi cambiano markup, la titolarita' - che e' gia'
+      // stata salvata qui sopra - non deve risultare fallita per colpa loro.
+      if (p.anche) {
+        try {
+          const lette = p.anche.leggi(risposta.testo);
+          const { abbinate: coppie, scartate } = p.anche.abbina(lette);
+          const { scritte } = p.anche.salva(coppie, p.fonte, adesso);
+          esito.anche = { nome: p.anche.nome, lette: lette.length, scritte, scartate };
+          for (const s of scartate) log(`${p.fonte}: ${p.anche.nome} scartato - ${s.motivo}`);
+        } catch (e) {
+          esito.anche = { nome: p.anche.nome, errore: e.message };
+          log(`${p.fonte}: ${p.anche.nome} non letti (${e.message}) - il resto della pagina e' salvo`);
+        }
+      }
     } catch (e) {
       esito.errore = e instanceof ErroreHttp ? `HTTP ${e.stato}` : e.message;
       log(`${p.fonte}: ${esito.errore} - salto la pagina, le altre proseguono`);

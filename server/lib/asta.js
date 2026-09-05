@@ -4,6 +4,7 @@ import { carrierePerGiocatore } from './wiki.js';
 import { xgPerGiocatore, xgStagioniPerGiocatore } from './understat.js';
 import { statsPerGiocatore } from './stats.js';
 import { datiCaricamento } from './listone.js';
+import { percentualeTitolarita } from './fantacalcio.js';
 
 /** Stato operativo dell'asta: chi e' ancora disponibile, la mia rosa, il
  *  massimo che posso permettermi. Nessuna rete qui dentro: durante l'asta si
@@ -131,6 +132,58 @@ const contaListone = () =>
     .prepare('SELECT count(*) AS totale, sum(assente_dal IS NULL) AS attivi FROM players')
     .get();
 
+/** I ballottaggi delle probabili formazioni.
+ *
+ *  Ogni riga porta la percentuale di titolarita' DI CIASCUNO DEI DUE, presa
+ *  dalla sua riga nella lista titolari. Non si manda al browser nessun "100
+ *  meno la prima": nel grafico del sito la seconda fetta e' aritmetica sulla
+ *  prima, e su 23 ballottaggi 22 volte contraddice la probabilita' che lo
+ *  stesso sito attribuisce a quel giocatore. Chi guarda deve vedere due numeri
+ *  veri, anche quando non fanno 100.
+ *
+ *  perc_titolare resta come riserva per il primo: e' identica alla sua
+ *  titolarita' in lista (verificato su tutte e 23), e serve se un giro di
+ *  raccolta salvasse i ballottaggi e non i segnali. */
+export function ballottaggi() {
+  return getDb()
+    .prepare(
+      `SELECT b.player_id_1, b.player_id_2, b.squadra, b.perc_titolare, b.nota, b.fonte, b.data,
+              p1.nome AS nome_1, p1.ruolo AS ruolo_1, p1.squadra AS squadra_1,
+              p2.nome AS nome_2, p2.ruolo AS ruolo_2, p2.squadra AS squadra_2,
+              s1.testo AS titolarita_1, s2.testo AS titolarita_2
+         FROM ballottaggi b
+         JOIN players p1 ON p1.id = b.player_id_1
+         JOIN players p2 ON p2.id = b.player_id_2
+         LEFT JOIN segnali s1 ON s1.player_id = b.player_id_1 AND s1.tipo = 'titolarita'
+         LEFT JOIN segnali s2 ON s2.player_id = b.player_id_2 AND s2.tipo = 'titolarita'
+        ORDER BY b.squadra, p1.nome`
+    )
+    .all()
+    .map((r) => ({
+      squadra: r.squadra,
+      nota: r.nota,
+      fonte: r.fonte,
+      data: r.data,
+      uno: {
+        id: r.player_id_1,
+        nome: r.nome_1,
+        ruolo: r.ruolo_1,
+        squadra: r.squadra_1,
+        percentuale: percentualeTitolarita(r.titolarita_1) ?? r.perc_titolare,
+      },
+      due: {
+        id: r.player_id_2,
+        nome: r.nome_2,
+        ruolo: r.ruolo_2,
+        squadra: r.squadra_2,
+        // Niente riserva qui: se la sua titolarita' non c'e', il numero non
+        // c'e'. L'unico ripiego possibile sarebbe 100 meno l'altro, che e'
+        // proprio quello che non vogliamo scrivere.
+        percentuale: percentualeTitolarita(r.titolarita_2),
+      },
+    }));
+}
+
 /** statsVuote dice all'interfaccia di avvisare che manca lo storico fanta:
  *  Wikipedia da' presenze e gol, la fantamedia solo gli Excel di fantacalcio.it. */
 export const stato = () => ({
@@ -138,6 +191,7 @@ export const stato = () => ({
   giocatori: giocatori(),
   rosa: rosa(),
   restanti: restanti(),
+  ballottaggi: ballottaggi(),
   statsVuote: getDb().prepare('SELECT count(*) AS n FROM stats').get().n === 0,
 });
 

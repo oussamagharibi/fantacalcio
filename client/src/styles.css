@@ -185,6 +185,20 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 /* Avanzamento dell'aggiornamento: una riga per fonte, con il motivo
    dell'errore accanto al nome e non dentro un log da aprire. */
 .bottone.grande { font-size: 15px; padding: 13px 24px; }
+/* Ballottaggi: due giocatori affiancati, ognuno con la SUA percentuale.
+   Non e' un grafico a torta e le due meta' non devono sembrare due fette:
+   niente barra unica, niente colori complementari. */
+.ballo-titolo { font-size: 14px; margin-bottom: 10px; }
+.ballo-lista { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.ballo-riga { padding: 9px 10px; background: var(--card-alta); border-radius: var(--r); }
+.ballo-coppia { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ballo-lato { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ballo-perc { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--acc); }
+.ballo-fra { color: var(--muted); font-size: 17px; flex: none; }
+.ballo-nota { margin-top: 6px; font-size: 12.5px; color: var(--muted); font-style: italic; }
+.ballo-spiega { margin-top: 5px; font-size: 11.5px; color: var(--muted); }
+.det-sez .ballo-riga { background: rgba(4, 11, 26, 0.5); }
+
 .agg-fase { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: baseline; gap: 8px; }
 .agg-avanzamento { margin-top: 14px; }
 .agg-avanzamento h4 {

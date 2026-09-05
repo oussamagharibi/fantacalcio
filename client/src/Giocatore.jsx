@@ -3,6 +3,8 @@ import { RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import Stella from './Stella.jsx';
+import { BallottaggiGiocatore } from './Ballottaggi.jsx';
+import { perGiocatore } from './ballottaggi.js';
 import { classeMedia } from './Rendimento.jsx';
 import { fasciaModificatore } from './regolamento.js';
 import {
@@ -110,7 +112,7 @@ function Punteggio({ g }) {
   );
 }
 
-export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, provenienza }) {
+export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, onApri, provenienza }) {
   if (!g)
     return (
       <main className="wrap">
@@ -122,6 +124,7 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
     );
 
   const s = sezioni(g);
+  const ballottaggi = perGiocatore(stato.ballottaggi, g.id);
   const fm = fantamedie(g);
   const xg = stagioniXg(g);
   const rig = rigorista(g);
@@ -435,6 +438,15 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
                 </div>
               )}
             </dl>
+          </Sezione>
+        )}
+
+        {/* "In ballottaggio con", mai "si contendono lo stesso posto": in sei
+            casi su ventitre i due hanno ruoli diversi, perche' la scelta e' di
+            modulo. La sezione non compare se non ha niente da dire. */}
+        {ballottaggi.length > 0 && (
+          <Sezione titolo="Ballottaggi" fonte="probabili formazioni fantacalcio.it">
+            <BallottaggiGiocatore stato={stato} giocatore={g} onApri={onApri} />
           </Sezione>
         )}
 
