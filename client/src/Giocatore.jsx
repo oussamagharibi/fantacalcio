@@ -3,6 +3,7 @@ import { RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import { classeMedia } from './Rendimento.jsx';
+import { fasciaModificatore } from './regolamento.js';
 import {
   MOTIVO_INSUFFICIENTE,
   arrotonda,
@@ -127,6 +128,9 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
   const subiti = golSubiti(g);
   const cambio = cambioSquadra(g);
   const portiere = g.ruolo === 'P';
+  /** Il modificatore di difesa si calcola sul portiere e sui tre migliori
+   *  difensori: per gli altri ruoli la fascia non vuol dire niente. */
+  const contaPerModificatore = g.ruolo === 'P' || g.ruolo === 'D';
   const diff = g.quotazione_iniziale === null ? null : g.quotazione - g.quotazione_iniziale;
 
   return (
@@ -232,6 +236,7 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
                   <th>Stagione</th>
                   <th className="num">Fm</th>
                   <th className="num">Mv</th>
+                  {contaPerModificatore && <th>Modificatore</th>}
                   <th className="num">Pv</th>
                   <th className="num">{portiere ? 'Gs' : 'Gol'}</th>
                   <th className="num">Ass</th>
@@ -245,6 +250,23 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
                     <td>{r.stagione}</td>
                     <td className="num forte">{arrotonda(r.fm, 2)}</td>
                     <td className="num">{r.mv === null ? '' : arrotonda(r.mv, 2)}</td>
+                    {contaPerModificatore && (
+                      <td className="reg-fascia">
+                        {(() => {
+                          const f = fasciaModificatore(r.mv, g.ruolo);
+                          return f ? (
+                            <>
+                              <span className={`chip${f.punti >= 3 ? ' tit' : f.punti === 0 ? '' : ' rig'}`}>
+                                {f.punti} pt
+                              </span>
+                              <span className="muted"> {f.etichetta}</span>
+                            </>
+                          ) : (
+                            ''
+                          );
+                        })()}
+                      </td>
+                    )}
                     <td className="num">{r.pv ?? ''}</td>
                     <td className="num">{(portiere ? r.gs : r.gol) ?? ''}</td>
                     <td className="num">{r.assist ?? ''}</td>

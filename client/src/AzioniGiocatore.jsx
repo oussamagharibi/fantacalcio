@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { eseguiAzione, statoGiocatore } from './azioni.js';
+import { avvisoSlotPieno } from './regolamento.js';
+import { RUOLI } from './squadre.js';
 
 /** Le azioni dell'asta su un giocatore, ovunque compaia: card in Analisi, riga
  *  in Listone, riga in Situazione, scheda del giocatore. Nessuna logica
@@ -74,6 +76,8 @@ export default function AzioniGiocatore({
     if (apertura === 'prezzo') {
       const n = Number(prezzo);
       const oltre = prezzo !== '' && Number.isFinite(n) && n > massimo;
+      // Sezione 3 del regolamento: gli slot di quel ruolo sono gia' tutti presi.
+      const pieno = avvisoSlotPieno(stato.rosa, g.ruolo, RUOLI[g.ruolo]?.nome ?? g.ruolo);
       return (
         <div className="az-prezzo">
           <input
@@ -94,8 +98,10 @@ export default function AzioniGiocatore({
           <button className="az" onClick={chiudi} title="annulla (Esc)">
             ✕
           </button>
-          {/* Avviso, non blocco: il prezzo lo decide l'asta, non l'applicazione. */}
+          {/* Avvisi, non blocchi: il prezzo e la rosa li decide l'asta, non
+              l'applicazione. Si comprano lo stesso, ma sapendolo. */}
           {oltre && <span className="az-avviso">oltre il massimo sostenibile ({massimo})</span>}
+          {pieno && <span className="az-avviso">{pieno}</span>}
         </div>
       );
     }

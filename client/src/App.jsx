@@ -5,12 +5,13 @@ import Listone from './Listone.jsx';
 import Situazione from './Situazione.jsx';
 import Asta from './Asta.jsx';
 import Giocatore from './Giocatore.jsx';
+import Regolamento from './Regolamento.jsx';
 import { FILTRI_VUOTI as FILTRI_ANALISI } from './analisiFiltri.js';
 
 /** Routing sull'hash invece di una libreria: cinque schermate non giustificano
  *  una dipendenza, e l'hash sopravvive al refresh senza toccare il server.
  *  #/giocatore/123 e' l'unica rotta con un parametro. */
-const PAGINE = ['analisi', 'listone', 'situazione', 'asta'];
+const PAGINE = ['analisi', 'listone', 'situazione', 'asta', 'regolamento'];
 const rottaDaHash = () => {
   const h = window.location.hash.replace('#/', '');
   const m = /^giocatore\/(\d+)$/.exec(h);
@@ -36,7 +37,13 @@ const FILTRI_INIZIALI = {
   situazione: { stato: null, ruolo: null, squadra: '', fascia: null, cerca: '' },
 };
 
-const NOMI = { analisi: 'Analisi', listone: 'Listone', situazione: 'Situazione', asta: 'Asta' };
+const NOMI = {
+  analisi: 'Analisi',
+  listone: 'Listone',
+  situazione: 'Situazione',
+  asta: 'Asta',
+  regolamento: 'Regolamento',
+};
 
 export default function App() {
   const [config, setConfig] = useState(null);
@@ -153,6 +160,7 @@ export default function App() {
       {pagina === 'listone' && <Listone stato={stato} {...perPagina('listone')} />}
       {pagina === 'situazione' && <Situazione stato={stato} {...perPagina('situazione')} />}
       {pagina === 'analisi' && <Analisi stato={stato} onRicarica={ricarica} {...perPagina('analisi')} />}
+      {pagina === 'regolamento' && <Regolamento stato={stato} />}
       {toast && <div className={`toast${toast.tipo === 'ko' ? ' ko' : ''}`}>{toast.testo}</div>}
     </>
   );

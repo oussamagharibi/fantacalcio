@@ -3,6 +3,7 @@ import { postAcquisto, postUscita, postAnnulla } from './api.js';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import { percentuale, perSlot, proiezionePrezzo } from './budget.js';
+import { avvisoSlotPieno, difensoriAmmessi, promemoriaDifensori } from './regolamento.js';
 import Carriera from './Carriera.jsx';
 import Rendimento from './Rendimento.jsx';
 import Preparazione from './Preparazione.jsx';
@@ -163,6 +164,13 @@ L'operazione non si annulla. Procedere?`
   /** Ricalcolata a ogni tasto: il valore di prezzo viene dallo stato, quindi
    *  ogni battuta rifa' il render e con esso la proiezione. */
   const proiezione = proiezionePrezzo(r, prezzo);
+  /** Regolamento: quanti difensori ammettono i moduli, e se ne mancano per il
+   *  modificatore. Dal modulo condiviso, non riscritti qui. */
+  const difAmmessi = difensoriAmmessi();
+  const promemoria = promemoriaDifensori(r);
+  /** Slot del ruolo gia' pieno: si avvisa citando la regola, non si blocca.
+   *  In asta si decide al volo, e a volte si prende il quinto attaccante. */
+  const slotPienoAvviso = lotto ? avvisoSlotPieno(r, lotto.ruolo, RUOLI[lotto.ruolo].nome) : null;
   const totalePerRuolo = (ruolo) => stato.restanti.filter((x) => x.ruolo === ruolo).reduce((s, x) => s + x.n, 0);
   const perFascia = (ruolo, f) => stato.restanti.filter((x) => x.ruolo === ruolo && x.fascia === f).reduce((s, x) => s + x.n, 0);
   const massimoRuolo = Math.max(1, ...ORDINE_RUOLI.map(totalePerRuolo));
@@ -214,6 +222,20 @@ L'operazione non si annulla. Procedere?`
             </span>
           </div>
         </div>
+
+        {/* I moduli consentiti (sezione 4) vanno da 3 a 5 difensori: e' il
+            margine dentro cui si puo' schierare, e in asta serve saperlo
+            mentre si decide quanti difensori comprare. */}
+        <p className="reg-riga">
+          moduli: da <strong>{difAmmessi.min}</strong> a <strong>{difAmmessi.max}</strong> difensori schierabili
+        </p>
+        {/* Sotto i 4 difensori il modificatore non si attiva mai, qualunque
+            modulo. Promemoria, non errore: la rosa la fa chi compra. */}
+        {promemoria && (
+          <p className="reg-avviso">
+            <strong>{promemoria.presi} difensori.</strong> {promemoria.testo.split('. ').slice(1).join('. ')}
+          </p>
+        )}
         {ORDINE_RUOLI.map((ruolo) => {
           const presi = r.presi.filter((p) => p.ruolo === ruolo);
           const posti = Array.from({ length: r.slot[ruolo] ?? 0 }, (_, i) => presi[i] ?? null);
@@ -315,6 +337,12 @@ L'operazione non si annulla. Procedere?`
                 <span className="n">{r.massimoSostenibile}</span>
               </div>
             </div>
+
+            {slotPienoAvviso && (
+              <p className="reg-avviso">
+                <strong>Slot pieno.</strong> {slotPienoAvviso}
+              </p>
+            )}
 
             <div className="lotto-dati">
               <span>
