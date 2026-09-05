@@ -185,6 +185,30 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 /* Avanzamento dell'aggiornamento: una riga per fonte, con il motivo
    dell'errore accanto al nome e non dentro un log da aprire. */
 .bottone.grande { font-size: 15px; padding: 13px 24px; }
+/* Il pannello centrale in due colonne: a sinistra quello che si sta battendo,
+   a destra chi altro c'e'. La destra sparisce quando non ha righe, e la
+   sinistra si prende tutto: meta' pannello vuota e' peggio di una colonna. */
+.centro-due {
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; align-items: start;
+}
+.centro-due.piena { grid-template-columns: minmax(0, 1fr); }
+
+.alt-avvertenza { font-size: 11.5px; color: var(--muted); margin: -6px 0 10px; }
+.alt-lista { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.alt-riga {
+  display: flex; align-items: center; gap: 7px; font-size: 13px;
+  padding: 5px 7px; border-radius: 8px; background: var(--card-alta);
+}
+/* Chi e' gia' andato si legge lo stesso, ma non compete per l'attenzione. */
+.alt-riga.alt-uscito { opacity: 0.55; }
+.alt-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alt-perc { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--acc); }
+.alt-qt { font-variant-numeric: tabular-nums; color: var(--muted); }
+.alt-stato { font-size: 10.5px; padding: 1px 6px; }
+.alt-stato.me { color: var(--ok); border-color: var(--ok); }
+.alt-stato.uscito { color: var(--muted); }
+.ballo-eti { font-size: 10.5px; padding: 1px 6px; color: var(--oro); border-color: var(--oro); }
+
 /* Ballottaggi: due giocatori affiancati, ognuno con la SUA percentuale.
    Non e' un grafico a torta e le due meta' non devono sembrare due fette:
    niente barra unica, niente colori complementari. */
@@ -598,6 +622,11 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 @media (max-width: 1400px) {
   .asta-griglia { grid-template-columns: 260px minmax(0, 1fr) 250px; gap: 12px; }
   .massimo .n { font-size: 64px; }
+}
+/* Sotto questa soglia due colonne dentro la colonna centrale diventano due
+   strisce: meglio una sotto l'altra. */
+@media (max-width: 1250px) {
+  .centro-due { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
   .det-colonne { grid-template-columns: 1fr; }

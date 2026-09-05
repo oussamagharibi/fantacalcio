@@ -7,7 +7,7 @@ import { avvisoSlotPieno, difensoriAmmessi, promemoriaDifensori } from './regola
 import Carriera from './Carriera.jsx';
 import Rendimento from './Rendimento.jsx';
 import Preparazione from './Preparazione.jsx';
-import { PannelloBallottaggi } from './Ballottaggi.jsx';
+import { ColonnaDestra, colonnaDestraPiena } from './Alternative.jsx';
 import { postReset } from './api.js';
 
 const MIN_LETTERE = 3;
@@ -172,6 +172,11 @@ L'operazione non si annulla. Procedere?`
   /** Slot del ruolo gia' pieno: si avvisa citando la regola, non si blocca.
    *  In asta si decide al volo, e a volte si prende il quinto attaccante. */
   const slotPienoAvviso = lotto ? avvisoSlotPieno(r, lotto.ruolo, RUOLI[lotto.ruolo].nome) : null;
+  /** La colonna destra ha qualcosa da dire? Se no il lotto va a tutta larghezza:
+   *  meta' pannello vuota accanto a un giocatore senza compagni di ruolo e'
+   *  peggio di nessuna colonna. Calcolato dai dati gia' qui, mai misurando il
+   *  DOM a cose fatte. */
+  const destraPiena = useMemo(() => colonnaDestraPiena(stato, lotto), [stato, lotto]);
   const totalePerRuolo = (ruolo) => stato.restanti.filter((x) => x.ruolo === ruolo).reduce((s, x) => s + x.n, 0);
   const perFascia = (ruolo, f) => stato.restanti.filter((x) => x.ruolo === ruolo && x.fascia === f).reduce((s, x) => s + x.n, 0);
   const massimoRuolo = Math.max(1, ...ORDINE_RUOLI.map(totalePerRuolo));
@@ -278,8 +283,12 @@ L'operazione non si annulla. Procedere?`
         </button>
       </aside>
 
-      {/* -------------------------------------------- centro: ricerca e lotto */}
+      {/* ------------------------- centro: a sinistra il lotto, a destra chi altro */}
       <section className="centro">
+        {/* Due colonne, ma solo quando la destra ha qualcosa da dire: un
+            giocatore senza compagni di ruolo lascerebbe meta' pannello vuota,
+            e il lotto sta meglio largo. */}
+        <div className={`centro-due${destraPiena ? '' : ' piena'}`}>
         {!lotto ? (
           <div className="pannello">
             <input
@@ -315,11 +324,6 @@ L'operazione non si annulla. Procedere?`
             </ol>
           </div>
         ) : null}
-
-        {/* Lo spazio sotto la ricerca era vuoto. I ballottaggi ci stanno bene:
-            riguardano chi ho gia' in rosa, quindi si guardano fra un lotto e
-            l'altro, non mentre si sta battendo un giocatore. */}
-        {!lotto && <PannelloBallottaggi stato={stato} onApri={onApri} />}
 
         {lotto && (
           <div className="pannello lotto">
@@ -429,6 +433,12 @@ L'operazione non si annulla. Procedere?`
             </div>
           </div>
         )}
+
+        {/* La colonna destra: le alternative del giocatore aperto, oppure - a
+            lotto chiuso - i ballottaggi di chi ho gia' in rosa. */}
+        {destraPiena && <ColonnaDestra stato={stato} lotto={lotto} onApri={onApri} />}
+        </div>
+
         <p className="scorciatoie">
           <kbd>Ctrl+Z</kbd> annulla l'ultima azione &middot; <kbd>Esc</kbd> chiude il lotto &middot; <kbd>1</kbd>-
           <kbd>9</kbd> scelgono dai risultati

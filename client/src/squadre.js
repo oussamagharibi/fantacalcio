@@ -1,33 +1,40 @@
-/** Sigla e colore sociale di ogni squadra. NON si scaricano loghi ufficiali:
+/** Sigla, colore sociale e articolo di ogni squadra.
+ *
+ *  "di" e' l'articolo che serve a scrivere "gli attaccanti del Milan" e "gli
+ *  attaccanti della Juventus". Non si ricava dal nome - e' genere grammaticale,
+ *  e "del Juventus" o "della Milan" si leggono subito come sbagliati. Sta qui
+ *  perche' qui stanno gia' gli altri fatti per squadra, uno per riga.
+ *
+ *  Sigla e colore sociale di ogni squadra. NON si scaricano loghi ufficiali:
  *  sono marchi registrati, e un fetch esterno che fallisce romperebbe il
  *  layout. Il badge e' un cerchio con la sigla, disegnato dal CSS.
  *  Per aggiungere una squadra basta una riga qui, senza toccare i componenti. */
 export const SQUADRE = {
-  Atalanta: { sigla: 'ATA', colore: '#1e71b8' },
-  Bologna: { sigla: 'BOL', colore: '#9c1b2e' },
-  Cagliari: { sigla: 'CAG', colore: '#a3122c' },
-  Como: { sigla: 'COM', colore: '#0b4ea2' },
-  Cremonese: { sigla: 'CRE', colore: '#8d1b1b' },
-  Empoli: { sigla: 'EMP', colore: '#1a6fc4' },
-  Fiorentina: { sigla: 'FIO', colore: '#6a2e8f' },
-  Frosinone: { sigla: 'FRO', colore: '#f2c300' },
-  Genoa: { sigla: 'GEN', colore: '#a81c24' },
-  Inter: { sigla: 'INT', colore: '#0068a8' },
-  Juventus: { sigla: 'JUV', colore: '#2b2b2b' },
-  Lazio: { sigla: 'LAZ', colore: '#8ec4ea' },
-  Lecce: { sigla: 'LEC', colore: '#efc300' },
-  Milan: { sigla: 'MIL', colore: '#c8102e' },
-  Monza: { sigla: 'MON', colore: '#b4192b' },
-  Napoli: { sigla: 'NAP', colore: '#12a0d7' },
-  Parma: { sigla: 'PAR', colore: '#0b5cab' },
-  Pisa: { sigla: 'PIS', colore: '#1b3f8b' },
-  Roma: { sigla: 'ROM', colore: '#8e1f2f' },
-  Salernitana: { sigla: 'SAL', colore: '#6b1f2b' },
-  Sassuolo: { sigla: 'SAS', colore: '#00a752' },
-  Torino: { sigla: 'TOR', colore: '#7a1f2b' },
-  Udinese: { sigla: 'UDI', colore: '#2c2c2c' },
-  Venezia: { sigla: 'VEN', colore: '#0e5b3e' },
-  Verona: { sigla: 'VER', colore: '#f2c300' },
+  Atalanta: { sigla: 'ATA', colore: '#1e71b8', di: "dell'" },
+  Bologna: { sigla: 'BOL', colore: '#9c1b2e', di: "del" },
+  Cagliari: { sigla: 'CAG', colore: '#a3122c', di: "del" },
+  Como: { sigla: 'COM', colore: '#0b4ea2', di: "del" },
+  Cremonese: { sigla: 'CRE', colore: '#8d1b1b', di: "della" },
+  Empoli: { sigla: 'EMP', colore: '#1a6fc4', di: "dell'" },
+  Fiorentina: { sigla: 'FIO', colore: '#6a2e8f', di: "della" },
+  Frosinone: { sigla: 'FRO', colore: '#f2c300', di: "del" },
+  Genoa: { sigla: 'GEN', colore: '#a81c24', di: "del" },
+  Inter: { sigla: 'INT', colore: '#0068a8', di: "dell'" },
+  Juventus: { sigla: 'JUV', colore: '#2b2b2b', di: "della" },
+  Lazio: { sigla: 'LAZ', colore: '#8ec4ea', di: "della" },
+  Lecce: { sigla: 'LEC', colore: '#efc300', di: "del" },
+  Milan: { sigla: 'MIL', colore: '#c8102e', di: "del" },
+  Monza: { sigla: 'MON', colore: '#b4192b', di: "del" },
+  Napoli: { sigla: 'NAP', colore: '#12a0d7', di: "del" },
+  Parma: { sigla: 'PAR', colore: '#0b5cab', di: "del" },
+  Pisa: { sigla: 'PIS', colore: '#1b3f8b', di: "del" },
+  Roma: { sigla: 'ROM', colore: '#8e1f2f', di: "della" },
+  Salernitana: { sigla: 'SAL', colore: '#6b1f2b', di: "della" },
+  Sassuolo: { sigla: 'SAS', colore: '#00a752', di: "del" },
+  Torino: { sigla: 'TOR', colore: '#7a1f2b', di: "del" },
+  Udinese: { sigla: 'UDI', colore: '#2c2c2c', di: "dell'" },
+  Venezia: { sigla: 'VEN', colore: '#0e5b3e', di: "del" },
+  Verona: { sigla: 'VER', colore: '#f2c300', di: "del" },
 };
 
 /** Colore per ruolo, l'accento che tiene insieme tutta l'interfaccia:
