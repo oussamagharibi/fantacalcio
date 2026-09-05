@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { postTarget, postGeneraAnalisi, getStatoAnalisi, getStato, uploadStats, uploadXg } from './api.js';
+import { postGeneraAnalisi, getStatoAnalisi, uploadStats, uploadXg } from './api.js';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
@@ -7,6 +7,7 @@ import UploadFonte from './UploadFonte.jsx';
 import Carriera from './Carriera.jsx';
 import Rendimento from './Rendimento.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
+import Stella from './Stella.jsx';
 import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squadreDi, FILTRI_VUOTI } from './analisiFiltri.js';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
@@ -32,27 +33,13 @@ function ChipSegnale({ s }) {
   );
 }
 
-function CardGiocatore({ g, onStella, onApri, stato, onStato, onAvviso }) {
+function CardGiocatore({ g, onApri, stato, onStato, onAvviso }) {
   const [aperta, setAperta] = useState(false);
-  const [pop, setPop] = useState(false);
   const colore = RUOLI[g.ruolo]?.colore;
-
-  const stella = () => {
-    setPop(true);
-    setTimeout(() => setPop(false), 240);
-    onStella(g.id);
-  };
 
   return (
     <article className={`card-g${g.uscito || g.acquistato ? ' fuori' : ''}`} style={{ '--linea-ruolo': colore }}>
-      <button
-        className={`stella${g.target ? ' attiva' : ''}${pop ? ' pop' : ''}`}
-        onClick={stella}
-        title={g.target ? 'togli dagli obiettivi' : 'segna come obiettivo'}
-        aria-pressed={g.target}
-      >
-        {g.target ? '★' : '☆'}
-      </button>
+      <Stella g={g} onStato={onStato} onAvviso={onAvviso} angolo />
 
       <div className="card-testa">
         <BadgeGiocatore nome={g.nome} ruolo={g.ruolo} />
@@ -144,11 +131,6 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
     if (r.errore) return setBatch({ inCorso: false, righe: [`errore: ${r.errore}`] });
     setBatch({ inCorso: true, righe: ['avviato...'] });
   }
-
-  const stella = async (id) => {
-    await postTarget(id);
-    onStato(await getStato());
-  };
 
   const perReparto = useMemo(
     () => Object.fromEntries(ORDINE_RUOLI.map((r) => [r, soloDelReparto(stato.giocatori, r)])),
@@ -247,7 +229,6 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
             <CardGiocatore
               key={g.id}
               g={g}
-              onStella={stella}
               onApri={onApri}
               stato={stato}
               onStato={onStato}

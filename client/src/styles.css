@@ -155,10 +155,13 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 .quota { font-size: 30px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
 .quota-eti { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
 .card-chip { display: flex; gap: 5px; flex-wrap: wrap; }
+/* La stessa stella in quattro viste: nella card sta nell'angolo, nelle tabelle
+   e nella scheda scorre nel flusso. Il posizionamento e' l'unica differenza. */
 .stella {
-  position: absolute; top: 8px; right: 8px; background: transparent; color: #3d4453;
+  background: transparent; color: #3d4453;
   font-size: 17px; line-height: 1; padding: 2px; transition: color var(--veloce), transform var(--veloce);
 }
+.stella.angolo { position: absolute; top: 8px; right: 8px; }
 .stella:hover { color: var(--oro); }
 .stella.attiva { color: var(--oro); }
 .stella.pop { animation: pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -364,6 +367,9 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .tabella-listone th.ordinabile:hover { color: var(--fg); }
 .tabella-listone th.num, .tabella-listone td.num { text-align: right; }
 .tabella-listone th.stretta, .tabella-listone td.stretta { width: 34px; text-align: center; }
+/* Nelle tabelle la stella riempie la sua cella: il bersaglio del click e' tutta
+   la casella, non i sedici pixel del glifo. */
+.tabella-listone td.stretta .stella { display: block; width: 100%; padding: 0; }
 .tabella-listone tbody tr:hover { background: var(--card-alta); }
 .tabella-listone tr.uscito { opacity: 0.5; }
 .tabella-listone td.sq { white-space: nowrap; }
@@ -479,6 +485,10 @@ input[type='file'] { padding: 6px; cursor: pointer; }
   padding: 16px; margin-bottom: 16px;
 }
 .det-testa h2 { font-size: 24px; }
+/* Nome e stella sulla stessa riga: la stella e' piu' piccola del titolo, e
+   allineata alla base perche' un simbolo centrato accanto a un h2 galleggia. */
+.det-nome { display: flex; align-items: baseline; gap: 8px; }
+.det-nome .stella { font-size: 20px; }
 .det-sotto { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; color: var(--muted); font-size: 13px; }
 
 .det-punteggio { margin-left: auto; min-width: 260px; }

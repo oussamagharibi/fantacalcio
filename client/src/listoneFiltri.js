@@ -29,7 +29,7 @@ const valore = (g, c) => (c?.calcolata ? c.calcolata(g) : g[c?.chiave]);
 
 /** Filtri combinabili e ordinamento. I vuoti finiscono sempre in fondo, in un
  *  senso e nell'altro: una casella senza dato non e' "il valore piu' basso". */
-export function filtraOrdina(giocatori, { ruolo = null, squadra = '', fascia = null, cerca = '', soloAttivi = true } = {}, ordine = { chiave: 'quotazione', crescente: false }) {
+export function filtraOrdina(giocatori, { ruolo = null, squadra = '', fascia = null, cerca = '', soloAttivi = true, soloObiettivi = false } = {}, ordine = { chiave: 'quotazione', crescente: false }) {
   const q = senzaAccenti(cerca).trim();
   const col = COLONNE.find((c) => c.chiave === ordine.chiave) ?? COLONNE[3];
   return giocatori
@@ -38,6 +38,7 @@ export function filtraOrdina(giocatori, { ruolo = null, squadra = '', fascia = n
     .filter((g) => !squadra || g.squadra === squadra)
     .filter((g) => fascia === null || g.fascia === fascia)
     .filter((g) => !q || senzaAccenti(g.nome).includes(q))
+    .filter((g) => !soloObiettivi || g.target)
     .slice()
     .sort((a, b) => {
       const x = valore(a, col);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
+import Stella from './Stella.jsx';
 import { classeMedia } from './Rendimento.jsx';
 import { fasciaModificatore } from './regolamento.js';
 import {
@@ -195,14 +196,19 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
       <header className="det-testa">
         <BadgeGiocatore nome={g.nome} ruolo={g.ruolo} />
         <div style={{ minWidth: 0 }}>
-          <h2>{g.nome}</h2>
+          {/* La stella accanto al nome, non una targhetta "obiettivo" piu' sotto:
+              qui si decide se un giocatore interessa, e la decisione si prende
+              dove si legge il nome. */}
+          <div className="det-nome">
+            <h2>{g.nome}</h2>
+            <Stella g={g} onStato={onStato} onAvviso={onAvviso} />
+          </div>
           <div className="det-sotto">
             <BadgeSquadra nome={g.squadra} size={18} titolo={false} /> {g.squadra}
             <span className="chip" style={{ borderColor: RUOLI[g.ruolo]?.colore, color: RUOLI[g.ruolo]?.colore }}>
               {RUOLI[g.ruolo]?.nome.slice(0, -1)}
             </span>
             <Fascia valore={g.fascia} ruolo={g.ruolo} />
-            {g.target && <span className="chip" style={{ color: 'var(--oro)', borderColor: 'var(--oro)' }}>★ obiettivo</span>}
           </div>
         </div>
         <Punteggio g={g} />

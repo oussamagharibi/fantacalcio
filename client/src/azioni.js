@@ -1,4 +1,4 @@
-import { postAcquisto, postAnnulla, postUscita } from './api.js';
+import { getStato, postAcquisto, postAnnulla, postTarget, postUscita } from './api.js';
 
 /** Lo stato di un giocatore nell'asta e le tre azioni che lo cambiano, in un
  *  posto solo.
@@ -47,5 +47,18 @@ export async function eseguiAzione({ tipo, g, prezzo }) {
       a.tipo === 'acquisto'
         ? `annullato: ${a.nome} a ${a.prezzo}, torna disponibile`
         : `annullato: ${a.nome} torna disponibile`,
+  };
+}
+
+/** Marca o smarca un obiettivo. Sta qui accanto alle altre azioni perche' la
+ *  stella ora si preme da quattro schermate diverse.
+ *  L'endpoint risponde solo con il nuovo valore della stella, non con lo stato
+ *  completo come fanno acquisto e uscita: per aggiornare le altre pagine senza
+ *  ricaricare serve rileggere lo stato, e quel giro sta qui una volta sola. */
+export async function commutaObiettivo(g) {
+  const r = await postTarget(g.id);
+  return {
+    stato: await getStato(),
+    messaggio: r.target ? `${g.nome} segnato come obiettivo` : `${g.nome} non e' piu' un obiettivo`,
   };
 }

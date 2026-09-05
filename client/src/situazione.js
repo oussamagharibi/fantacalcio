@@ -23,14 +23,15 @@ export function conStato(giocatori, presi) {
   return giocatori.filter((g) => !g.assente_dal).map((g) => ({ ...g, ...statoGiocatore(g, presi) }));
 }
 
-export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia = null, cerca = '' } = {}) {
+export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia = null, cerca = '', soloObiettivi = false } = {}) {
   const q = senzaAccenti(cerca).trim();
   return righe
     .filter((g) => !stato || g.stato === stato)
     .filter((g) => !ruolo || g.ruolo === ruolo)
     .filter((g) => !squadra || g.squadra === squadra)
     .filter((g) => fascia === null || g.fascia === fascia)
-    .filter((g) => !q || senzaAccenti(g.nome).includes(q));
+    .filter((g) => !q || senzaAccenti(g.nome).includes(q))
+    .filter((g) => !soloObiettivi || g.target);
 }
 
 /** Quanto listone e' gia' andato, in totale e ruolo per ruolo. */

@@ -33,8 +33,9 @@ const FILTRI_INIZIALI = {
     fascia: null,
     cerca: '',
     soloAttivi: true,
+    soloObiettivi: false,
   },
-  situazione: { stato: null, ruolo: null, squadra: '', fascia: null, cerca: '' },
+  situazione: { stato: null, ruolo: null, squadra: '', fascia: null, cerca: '', soloObiettivi: false },
 };
 
 const NOMI = {
