@@ -19,7 +19,37 @@ export const scala = (v, { min, max }) => fra(1 + ((v - min) * 4) / (max - min),
 
 // -------------------------------------------------------------------- segnali
 
-export const segnale = (g, tipo) => (g?.segnali ?? []).find((s) => s.tipo === tipo) ?? null;
+/** Tutte le righe di un tipo, una per fonte. Conservarle e' il punto: due
+ *  fonti che concordano sono un segnale forte, due che discordano vanno viste,
+ *  e sceglierne una a caso butterebbe via l'informazione. */
+export const segnali = (g, tipo) => (g?.segnali ?? []).filter((s) => s.tipo === tipo);
+export const segnale = (g, tipo) => segnali(g, tipo)[0] ?? null;
+
+/** I quattro stati di disponibilita', dal piu' grave: quello che compare in
+ *  cima alla scheda e' il piu' serio fra quelli segnalati. */
+export const INDISPONIBILITA = ['squalifica', 'infortunio', 'dubbio', 'diffida'];
+
+export const ETICHETTE = {
+  infortunio: 'Infortunio',
+  dubbio: 'In dubbio',
+  squalifica: 'Squalificato',
+  diffida: 'Diffidato',
+};
+
+/** Tutte le segnalazioni di indisponibilita', raggruppate per tipo e con le
+ *  fonti che le sostengono. Se piu' fonti dicono la stessa cosa, concordi = true. */
+export function indisponibilita(g) {
+  const gruppi = INDISPONIBILITA.map((tipo) => ({ tipo, etichetta: ETICHETTE[tipo], righe: segnali(g, tipo) })).filter(
+    (x) => x.righe.length
+  );
+  return {
+    gruppi,
+    // Discordanza: piu' tipi diversi segnalati insieme (uno dice out, un altro
+    // in dubbio). Va mostrata, non risolta a favore di uno dei due.
+    discordi: gruppi.filter((x) => x.tipo !== 'diffida').length > 1,
+    fonti: [...new Set(gruppi.flatMap((x) => x.righe.map((r) => r.fonte).filter(Boolean)))],
+  };
+}
 
 export function titolarita(g) {
   const s = segnale(g, 'titolarita');
@@ -180,7 +210,7 @@ export function sezioni(g) {
     xg: stagioniXg(g).length > 0,
     rigorista: !!rigorista(g),
     titolarita: !!titolarita(g),
-    infortunio: !!infortunio(g),
+    infortunio: indisponibilita(g).gruppi.length > 0,
     carriera: (g?.carriera ?? []).length > 0,
     golSubiti: !!golSubiti(g),
     rigori: !!rigoriFanta(g),

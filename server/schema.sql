@@ -91,15 +91,21 @@ CREATE TABLE IF NOT EXISTS usciti (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- Segnali estratti dalle pagine-elenco di Fantacalcio.it da parser dedicati.
--- Una fotografia, non uno storico: a ogni giro il tipo viene riscritto.
+-- Segnali estratti dalle pagine-elenco con parser dedicati.
+-- Una fotografia, non uno storico: a ogni giro la coppia (tipo, fonte) viene
+-- riscritta.
+-- La fonte fa parte della chiave. Piu' siti possono dire cose diverse sullo
+-- stesso giocatore - uno "out", un altro "in dubbio" - e sovrascrivere in
+-- silenzio farebbe sparire il disaccordo, che e' proprio l'informazione utile:
+-- due fonti che concordano sono un segnale forte, due che discordano vanno
+-- viste. Percio' si conservano tutte le righe.
 CREATE TABLE IF NOT EXISTS segnali (
   player_id INTEGER NOT NULL REFERENCES players(id),
   tipo TEXT NOT NULL,
   testo TEXT,
-  fonte TEXT,
+  fonte TEXT NOT NULL DEFAULT '',
   data TEXT,
-  PRIMARY KEY (player_id, tipo)
+  PRIMARY KEY (player_id, tipo, fonte)
 );
 
 CREATE TABLE IF NOT EXISTS articles (

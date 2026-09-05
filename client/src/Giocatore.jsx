@@ -11,7 +11,7 @@ import {
   contatoreVero,
   fantamedie,
   golSubiti,
-  infortunio,
+  indisponibilita,
   minutiVeri,
   rigoriFanta,
   rigorista,
@@ -21,6 +21,8 @@ import {
   stelle,
   titolarita,
 } from './giocatore.js';
+
+const quando = (d) => (d ? new Date(d).toLocaleDateString('it-IT') : null);
 
 /** Tutto quello che l'applicazione sa di un giocatore, in una pagina sola.
  *  Ogni blocco compare solo se ha un dato dietro: una sezione con i trattini
@@ -123,7 +125,7 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
   const xg = stagioniXg(g);
   const rig = rigorista(g);
   const tit = titolarita(g);
-  const inf = infortunio(g);
+  const ind = indisponibilita(g);
   const rigori = rigoriFanta(g);
   const subiti = golSubiti(g);
   const cambio = cambioSquadra(g);
@@ -148,12 +150,35 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
         </p>
       )}
 
-      {/* L'infortunio per esteso, non un'icona: il testo dice quando torna, ed
-          e' l'unica cosa che serve davvero sapere prima di puntarci. */}
-      {inf && (
-        <p className="det-banner infortunio">
-          <strong>Infortunio in corso.</strong> {sciogliEntita(inf.testo)}
-        </p>
+      {/* Ogni segnalazione per esteso, con da dove viene e di quando e'. Piu'
+          fonti sullo stesso giocatore restano tutte: se concordano il segnale
+          e' forte, se discordano voglio vederlo, non voglio che una vinca in
+          silenzio sull'altra. */}
+      {ind.gruppi.length > 0 && (
+        <div className={`det-banner ${ind.gruppi[0].tipo === 'diffida' ? 'cambio' : 'infortunio'}`}>
+          {ind.discordi && (
+            <p className="det-discordi">
+              <strong>Le fonti non concordano.</strong> Sotto ci sono tutte, con data e provenienza.
+            </p>
+          )}
+          {ind.gruppi.map((gr) => (
+            <div key={gr.tipo} className="det-segnalazione">
+              <strong>
+                {gr.etichetta}
+                {gr.righe.length > 1 && <span className="det-concordi"> · {gr.righe.length} fonti concordi</span>}
+              </strong>
+              {gr.righe.map((r, i) => (
+                <p key={i}>
+                  {sciogliEntita(r.testo)}
+                  <span className="det-provenienza">
+                    {r.fonte ?? 'fonte non registrata'}
+                    {quando(r.data) && ` · ${quando(r.data)}`}
+                  </span>
+                </p>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Cambio squadra: il rendimento passato l'ha fatto da un'altra parte. */}
@@ -397,8 +422,10 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, pro
               )}
               {s.infortunio && (
                 <div>
-                  <dt>Infortunio</dt>
-                  <dd className="giu">in corso — il dettaglio e' in cima alla scheda</dd>
+                  <dt>Disponibilità</dt>
+                  <dd className="giu">
+                    {ind.gruppi.map((x) => x.etichetta).join(', ').toLowerCase()} — il dettaglio e' in cima alla scheda
+                  </dd>
                 </div>
               )}
             </dl>

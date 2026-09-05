@@ -25,6 +25,38 @@ const COLONNE_AGGIUNTE = [
   { tabella: 'articles', colonna: 'fonte', definizione: 'TEXT' },
 ];
 
+/** La chiave di segnali e' passata da (player_id, tipo) a (player_id, tipo,
+ *  fonte): in SQLite una chiave primaria non si cambia con ALTER, la tabella
+ *  va ricostruita. Si riconosce dalla vecchia forma guardando quante colonne
+ *  compongono la chiave.
+ *  Le righe esistenti si portano dietro cosi' come sono, con la fonte a stringa
+ *  vuota dove mancava: NULL in una chiave primaria SQLite lo accetta, e due
+ *  NULL non si considerano uguali, quindi la riscrittura smetterebbe di essere
+ *  idempotente. */
+function migraSegnali(d) {
+  const colonne = d.prepare('PRAGMA table_info(segnali)').all();
+  if (!colonne.length) return false;
+  const chiave = colonne.filter((c) => c.pk > 0).map((c) => c.name);
+  if (chiave.includes('fonte')) return false;
+  backup('pre-migrazione-segnali');
+  d.exec(`
+    CREATE TABLE segnali_nuova (
+      player_id INTEGER NOT NULL REFERENCES players(id),
+      tipo TEXT NOT NULL,
+      testo TEXT,
+      fonte TEXT NOT NULL DEFAULT '',
+      data TEXT,
+      PRIMARY KEY (player_id, tipo, fonte)
+    );
+    INSERT INTO segnali_nuova (player_id, tipo, testo, fonte, data)
+      SELECT player_id, tipo, testo, coalesce(fonte, ''), data FROM segnali;
+    DROP TABLE segnali;
+    ALTER TABLE segnali_nuova RENAME TO segnali;
+  `);
+  console.log('[db] segnali: chiave estesa a (player_id, tipo, fonte)');
+  return true;
+}
+
 /** Applica gli ALTER mancanti. Non fallisce se la colonna c'e' gia': la
  *  presenza si controlla prima, invece di intercettare l'errore di SQLite. */
 function migra(d) {
@@ -36,6 +68,7 @@ function migra(d) {
     d.exec(`ALTER TABLE ${tabella} ADD COLUMN ${colonna} ${definizione}`);
     applicate.push(`${tabella}.${colonna}`);
   }
+  if (migraSegnali(d)) applicate.push('segnali.chiave');
   if (applicate.length) console.log(`[db] migrazioni applicate: ${applicate.join(', ')}`);
   return applicate;
 }

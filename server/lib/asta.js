@@ -43,8 +43,8 @@ export function giocatori() {
               t.player_id IS NOT NULL AS target,
               u.player_id IS NOT NULL AS uscito,
               a.player_id IS NOT NULL AS acquistato,
-              (SELECT group_concat(s.tipo || char(31) || s.testo, char(30))
-                 FROM segnali s WHERE s.player_id = p.id) AS segnali
+              (SELECT group_concat(s.tipo || char(31) || s.testo || char(31) || coalesce(s.fonte, '') || char(31) || coalesce(s.data, ''), char(30))
+                 FROM segnali s WHERE s.player_id = p.id ORDER BY s.tipo, s.fonte) AS segnali
          FROM players p
          LEFT JOIN targets t ON t.player_id = p.id
          LEFT JOIN usciti u ON u.player_id = p.id
@@ -65,8 +65,10 @@ export function giocatori() {
         .split(SEP_VOCE)
         .filter(Boolean)
         .map((s) => {
-          const [tipo, testo] = s.split(SEP_CAMPO);
-          return { tipo, testo };
+          // Piu' fonti possono segnalare lo stesso giocatore: ognuna porta la
+          // sua riga, con da dove viene e quando.
+          const [tipo, testo, fonte, data] = s.split(SEP_CAMPO);
+          return { tipo, testo, fonte: fonte || null, data: data || null };
         }),
     }));
 }

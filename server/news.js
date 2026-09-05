@@ -1,8 +1,9 @@
 import { getDb, backup } from './db.js';
-import { leggiFonti, risolviFeed, FONTI_PATH } from './lib/fonti.js';
+import { leggiFonti, risolviFeed, risolviPagine, FONTI_PATH } from './lib/fonti.js';
 import { raccogli, associa, perGiocatore, salvaNota, GIORNI_MAX, CARATTERI_MINIMI } from './lib/notizie.js';
 import { stimaCosto, costoReale, chiaveMancante, generaNota, conFonti, nuovoClient, MODELLO, PREZZO } from './lib/analisi.js';
 import { raccogliSegnali, contaSegnali, FONTI_CON_PARSER } from './lib/fantacalcio.js';
+import { raccogliInfortuni, FONTI_INFORTUNI } from './lib/infortuni.js';
 
 /** Script batch del modulo notizie. Da lanciare PRIMA dell'asta, mai durante:
  *  fa decine di richieste con due secondi di pausa e puo' durare minuti.
@@ -20,10 +21,16 @@ sezione('FONTI');
 const { fonti, creato } = leggiFonti();
 log(`file fonti: ${FONTI_PATH}${creato ? ' (creato ora con le fonti di default)' : ''}`);
 await risolviFeed(fonti, (m) => log(m));
+// L'url di Sky cambia ogni giornata: si riscopre a ogni giro.
+await risolviPagine(fonti, (m) => log(m));
 for (const f of fonti) {
   const stato = f.attiva ? 'attiva ' : 'spenta ';
   log(`  ${stato} ${f.nome.padEnd(26)} ${f.tipo.padEnd(7)} ${f.url ?? '(nessun url)'}${f.errore ? `  <- ${f.errore}` : ''}`);
 }
+
+/** Tutte le fonti che hanno un parser dedicato: restano fuori dal percorso
+ *  generico, altrimenti finirebbero anche in articles e dentro associa(). */
+const TUTTE_CON_PARSER = new Set([...FONTI_CON_PARSER, ...FONTI_INFORTUNI]);
 
 const bak = backup('pre-news');
 log(`backup db: ${bak}`);
@@ -41,18 +48,34 @@ for (const e of esitiSegnali) {
   );
   for (const n of e.nonAbbinati) log(`    non abbinato: "${n.nome}"${n.squadra ? ` (${n.squadra})` : ''} - ${n.motivo}`);
 }
+sezione('INFORTUNI, DUBBI, SQUALIFICHE E DIFFIDE');
+const esitiInfortuni = await raccogliInfortuni(fonti, (m) => log(m));
+for (const e of esitiInfortuni) {
+  if (e.errore) {
+    log(`${e.fonte.padEnd(26)} ERRORE: ${e.errore} (i segnali precedenti restano)`);
+    continue;
+  }
+  log(`${e.fonte.padEnd(26)} ${e.url}`);
+  const perTipo = Object.entries(e.perTipo).map(([t, n]) => `${t} ${n}`).join(', ') || 'niente';
+  log(
+    `${''.padEnd(26)} voci lette: ${String(e.lette).padStart(4)} (${perTipo}) | abbinate: ${String(e.abbinate).padStart(4)} | ` +
+      `non abbinate: ${String(e.nonAbbinati.length).padStart(3)}`
+  );
+  for (const n of e.nonAbbinati) log(`    non abbinato: "${n.nome}"${n.squadra ? ` (${n.squadra})` : ''} - ${n.motivo}`);
+}
+
 for (const s of contaSegnali()) log(`segnali in archivio, ${s.tipo}: ${s.n}`);
 
 // Le pagine con parser non devono restare anche in articles: la' finirebbero
 // di nuovo dentro associa(), che e' proprio il percorso che stiamo scavalcando.
 const ripulite = getDb()
-  .prepare(`DELETE FROM articles WHERE fonte IN (${[...FONTI_CON_PARSER].map(() => '?').join(',')})`)
-  .run(...FONTI_CON_PARSER).changes;
+  .prepare(`DELETE FROM articles WHERE fonte IN (${[...TUTTE_CON_PARSER].map(() => '?').join(',')})`)
+  .run(...TUTTE_CON_PARSER).changes;
 if (ripulite) log(`articoli rimossi perche' ora gestiti dai parser: ${ripulite}`);
 
 sezione('RACCOLTA ARTICOLI');
 const esiti = await raccogli(
-  fonti.filter((f) => !FONTI_CON_PARSER.has(f.nome)),
+  fonti.filter((f) => !TUTTE_CON_PARSER.has(f.nome)),
   (m) => log(m)
 );
 for (const e of esiti) {

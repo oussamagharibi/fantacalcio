@@ -11,8 +11,17 @@ import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squa
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
  *  titolarita'. Il testo lungo resta nel title, la card non si allarga. */
+const ETICHETTE_CHIP = { infortunio: 'infortunio', dubbio: 'in dubbio', squalifica: 'squalificato', diffida: 'diffidato' };
+
 function ChipSegnale({ s }) {
-  if (s.tipo === 'infortunio') return <span className="chip inf" title={s.testo}>infortunio</span>;
+  if (ETICHETTE_CHIP[s.tipo]) {
+    const titolo = `${s.testo}${s.fonte ? ` — ${s.fonte}` : ''}`;
+    return (
+      <span className={`chip ${s.tipo === 'dubbio' || s.tipo === 'diffida' ? 'dub' : 'inf'}`} title={titolo}>
+        {ETICHETTE_CHIP[s.tipo]}
+      </span>
+    );
+  }
   if (s.tipo === 'rigorista') return <span className="chip rig" title={s.testo}>{s.testo.replace('rigorista ', 'rig ')}</span>;
   const perc = /(\d+)%/.exec(s.testo)?.[1];
   const titolare = s.testo.startsWith('titolare');
@@ -70,8 +79,10 @@ function CardGiocatore({ g, onStella, onApri, stato, onStato, onAvviso }) {
 
       {g.segnali.length > 0 && (
         <div className="card-chip">
-          {g.segnali.map((s) => (
-            <ChipSegnale key={s.tipo} s={s} />
+          {/* Una chip per riga: due fonti sullo stesso tipo sono due chip,
+              e la differenza si vede invece di sparire. */}
+          {g.segnali.map((s, i) => (
+            <ChipSegnale key={`${s.tipo}-${s.fonte ?? i}`} s={s} />
           ))}
         </div>
       )}

@@ -362,7 +362,7 @@ L'operazione non si annulla. Procedere?`
             {lotto.segnali.length > 0 && (
               <div className="card-chip">
                 {lotto.segnali.map((s) => (
-                  <ChipSegnale key={s.tipo} s={s} />
+                  <ChipSegnale key={`${s.tipo}-${s.fonte ?? ''}`} s={s} />
                 ))}
               </div>
             )}

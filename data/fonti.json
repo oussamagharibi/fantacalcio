@@ -53,5 +53,23 @@
     "attiva": true,
     "tipo": "pagina",
     "url": "https://www.fantacalcio.it/rigoristi-serie-a"
+  },
+  {
+    "nome": "SOS Fanta indisponibili",
+    "attiva": true,
+    "tipo": "pagina",
+    "url": "https://www.sosfanta.com/indisponibili-e-squalificati/tabella-indisponibili-seriea-fantacalcio-asta-infortunati-tempi-recupero-squalificati-diffidati/"
+  },
+  {
+    "nome": "Mondocalcio infortunati",
+    "attiva": true,
+    "tipo": "pagina",
+    "url": "https://www.mondocalciomagazine.it/infortunati-serie-a/"
+  },
+  {
+    "nome": "Sky indisponibili",
+    "attiva": true,
+    "tipo": "pagina",
+    "url": null
   }
 ]

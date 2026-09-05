@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DATA_DIR } from '../db.js';
 import { scaricaSePermesso, ErroreHttp } from './web.js';
+import { INGRESSI_SKY, scegliLinkSky } from './infortuni.js';
 
 export const FONTI_PATH = process.env.FONTI_PATH ?? path.join(DATA_DIR, 'fonti.json');
 
@@ -17,6 +18,10 @@ const SEED = [
   { nome: 'Corriere dello Sport', attiva: false, tipo: 'rss', url: null },
   { nome: 'TuttoMercatoWeb', attiva: false, tipo: 'rss', url: null },
   { nome: 'Fantacalcio rigoristi', attiva: false, tipo: 'pagina', url: 'https://www.fantacalcio.it/rigoristi-serie-a' },
+  { nome: 'SOS Fanta indisponibili', attiva: true, tipo: 'pagina', url: 'https://www.sosfanta.com/indisponibili-e-squalificati/tabella-indisponibili-seriea-fantacalcio-asta-infortunati-tempi-recupero-squalificati-diffidati/' },
+  { nome: 'Mondocalcio infortunati', attiva: true, tipo: 'pagina', url: 'https://www.mondocalciomagazine.it/infortunati-serie-a/' },
+  // L'url di Sky cambia ogni giornata: si scopre, non si fissa.
+  { nome: 'Sky indisponibili', attiva: true, tipo: 'pagina', url: null },
 ];
 
 /** Homepage da cui scoprire il feed quando url e' null. Non e' un elenco di
@@ -56,6 +61,54 @@ export function trovaFeed(html, base) {
     }
   }
   return null;
+}
+
+/** Fonti a pagina il cui indirizzo cambia nel tempo e va scoperto ogni volta.
+ *  Oggi ce n'e' una: l'articolo settimanale di Sky, il cui url contiene data e
+ *  numero di giornata. Si prova un ingresso alla volta e ci si ferma al primo
+ *  che porta un link buono. */
+const DA_SCOPRIRE = {
+  'sky indisponibili': { ingressi: INGRESSI_SKY, scegli: scegliLinkSky },
+};
+
+/** Come risolviFeed, ma per le pagine: l'url trovato finisce in fonti.json e
+ *  la volta dopo non si riscopre. Se non si trova, la fonte viene marcata con
+ *  l'errore e il giro prosegue con le altre.
+ *  L'url NON si ricicla fra un giro e l'altro: quello di Sky vale per una
+ *  giornata sola, quindi si riparte sempre dalla ricerca. */
+export async function risolviPagine(fonti, log = () => {}) {
+  let modificato = false;
+  for (const f of fonti) {
+    const regola = DA_SCOPRIRE[f.nome.trim().toLowerCase()];
+    if (!f.attiva || f.tipo !== 'pagina' || !regola) continue;
+    const prima = f.url;
+    f.url = null;
+    let trovato = null;
+    for (const ingresso of regola.ingressi) {
+      try {
+        const risposta = await scaricaSePermesso(ingresso);
+        if (!risposta) {
+          log(`${f.nome}: robots.txt vieta ${ingresso}`);
+          continue;
+        }
+        trovato = regola.scegli(risposta.testo, risposta.url);
+        if (trovato) break;
+      } catch (e) {
+        log(`${f.nome}: ${e instanceof ErroreHttp ? `HTTP ${e.stato}` : e.message} su ${ingresso}`);
+      }
+    }
+    if (trovato) {
+      f.url = trovato;
+      delete f.errore;
+      log(`${f.nome}: url scoperto -> ${trovato}`);
+    } else {
+      f.errore = `url non trovato: nessun link che corrisponde allo schema in ${regola.ingressi.length} pagine provate`;
+      log(`${f.nome}: ${f.errore}`);
+    }
+    if (f.url !== prima || f.errore) modificato = true;
+  }
+  if (modificato) salvaFonti(fonti);
+  return modificato;
 }
 
 /** Risolve gli url mancanti e riscrive fonti.json, cosi' la volta dopo non

@@ -183,13 +183,18 @@ export function abbina(voci) {
 
 /** I segnali sono una fotografia, non uno storico: chi non e' piu' infortunato
  *  non deve restare segnato. Per ogni tipo letto con successo si cancella e si
- *  riscrive; se una pagina non risponde, i suoi segnali restano quelli di prima. */
+ *  riscrive; se una pagina non risponde, i suoi segnali restano quelli di prima.
+ *
+ *  La cancellazione e' limitata a (tipo, fonte). Prima toglieva tutto il tipo,
+ *  e con piu' siti che segnalano infortuni l'ultimo arrivato avrebbe spazzato
+ *  via quello che avevano scritto gli altri: proprio le righe che servono per
+ *  vedere se due fonti concordano. */
 export function salvaSegnali(tipo, righe, fonte, data) {
   return tx((d) => {
-    const rimossi = d.prepare('DELETE FROM segnali WHERE tipo = ?').run(tipo).changes;
+    const rimossi = d.prepare('DELETE FROM segnali WHERE tipo = ? AND fonte = ?').run(tipo, fonte).changes;
     const ins = d.prepare(
       `INSERT INTO segnali (player_id, tipo, testo, fonte, data) VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(player_id, tipo) DO UPDATE SET testo = excluded.testo, fonte = excluded.fonte, data = excluded.data`
+       ON CONFLICT(player_id, tipo, fonte) DO UPDATE SET testo = excluded.testo, data = excluded.data`
     );
     let scritti = 0;
     for (const r of righe) {

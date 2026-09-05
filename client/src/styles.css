@@ -602,3 +602,13 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .reg-avviso strong { color: var(--oro); }
 .det-tab td.reg-fascia { white-space: nowrap; }
 .det-tab td.reg-fascia .muted { font-size: 11px; }
+
+/* Segnalazioni di indisponibilita': una riga per fonte, con provenienza e data. */
+.det-segnalazione { margin-bottom: 8px; }
+.det-segnalazione:last-child { margin-bottom: 0; }
+.det-segnalazione > strong { display: block; margin-bottom: 3px; }
+.det-concordi { font-weight: 400; color: var(--ok); font-size: 12px; }
+.det-provenienza { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.det-discordi { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 8px; }
+.det-discordi strong { color: var(--oro); }
+.chip.dub { border-color: var(--oro); color: var(--oro); }
