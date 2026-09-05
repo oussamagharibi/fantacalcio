@@ -271,8 +271,12 @@ app.post('/api/target', (req, reply) => {
   return r;
 });
 
-/** Lancia il batch delle notizie. Da usare prima dell'asta: fa richieste di
- *  rete lente e non deve girare mentre si sta battendo un giocatore. */
+/** Lancia l'aggiornamento di tutte le fonti. Da usare prima dell'asta: fa
+ *  richieste di rete lente e non deve girare mentre si sta battendo un
+ *  giocatore.
+ *  Torna subito: la corsa dura minuti, e una richiesta HTTP che restasse
+ *  aperta cosi' a lungo verrebbe chiusa dal proxy molto prima della fine.
+ *  Chi ha premuto il pulsante segue l'avanzamento su /api/news/stato. */
 app.post('/api/news/genera', (req, reply) => {
   const r = avviaBatch({ conferma: req.body?.conferma === true });
   if (!r.ok) return reply.code(409).send({ error: r.errore });

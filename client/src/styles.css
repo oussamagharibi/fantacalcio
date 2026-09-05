@@ -182,6 +182,42 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
   white-space: pre-wrap; margin-bottom: 14px;
 }
 
+/* Avanzamento dell'aggiornamento: una riga per fonte, con il motivo
+   dell'errore accanto al nome e non dentro un log da aprire. */
+.bottone.grande { font-size: 15px; padding: 13px 24px; }
+.agg-fase { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: baseline; gap: 8px; }
+.agg-avanzamento { margin-top: 14px; }
+.agg-avanzamento h4 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px;
+  color: var(--muted); margin: 12px 0 5px;
+}
+.agg-lista { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.agg-fonte {
+  display: flex; align-items: baseline; gap: 8px; font-size: 13px;
+  padding: 3px 8px; border-radius: 6px;
+}
+.agg-fonte.ko { background: rgba(255, 107, 94, 0.09); }
+.agg-fonte.corso { background: var(--card-alta); }
+.agg-segno { width: 14px; flex: none; text-align: center; font-size: 12px; }
+.agg-segno.ok, .agg-fonte.ok .agg-segno { color: var(--ok); }
+.agg-segno.ko, .agg-fonte.ko .agg-segno { color: var(--ko); }
+.agg-segno.corso, .agg-fonte.corso .agg-segno { color: var(--acc); }
+.agg-segno.attesa, .agg-fonte.attesa .agg-segno { color: var(--muted); }
+.agg-fonte.interrotta .agg-segno { color: var(--oro); }
+.agg-nome { flex: none; min-width: 190px; font-weight: 600; }
+.agg-fonte.attesa .agg-nome { color: var(--muted); font-weight: 500; }
+.agg-dett { color: var(--muted); min-width: 0; }
+/* L'errore in rosso e in chiaro: e' la riga che si deve leggere per prima. */
+.agg-fonte.ko .agg-dett { color: var(--ko); }
+.agg-note { margin-top: 12px; font-size: 13px; display: flex; align-items: baseline; gap: 8px; }
+.agg-riepilogo {
+  margin-top: 14px; padding: 10px 12px; border-radius: var(--r); font-size: 13px;
+  background: var(--card-alta); border-left: 3px solid var(--ok);
+}
+.agg-riepilogo.con-errori { border-left-color: var(--ko); }
+.agg-riepilogo .ko { color: var(--ko); }
+.agg .avviso.banner { margin-top: 12px; }
+
 /* ------------------------------------------------------------ pagina asta */
 /* Tre zone fisse: durante l'asta non si scorre. Ogni zona scorre per conto suo
    solo se il contenuto eccede, cosi' ricerca e lotto restano sempre al loro posto. */

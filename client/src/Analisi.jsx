@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { postGeneraAnalisi, getStatoAnalisi, uploadStats, uploadXg } from './api.js';
+import { useMemo, useState } from 'react';
+import { uploadStats, uploadXg } from './api.js';
 import { RUOLI, ORDINE_RUOLI } from './squadre.js';
 import { BadgeSquadra, BadgeGiocatore, Fascia } from './Badge.jsx';
 import UploadListone from './UploadListone.jsx';
@@ -8,6 +8,7 @@ import Carriera from './Carriera.jsx';
 import Rendimento from './Rendimento.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import Stella from './Stella.jsx';
+import Aggiorna from './Aggiorna.jsx';
 import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squadreDi, FILTRI_VUOTI } from './analisiFiltri.js';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
@@ -109,28 +110,6 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
   const imposta = (patch) => onFiltri({ ...filtri, ...patch });
   const setReparto = (r) => imposta({ reparto: r });
   const commuta = (campo) => imposta({ [campo]: !filtri[campo] });
-  const [batch, setBatch] = useState({ inCorso: false, righe: [] });
-  const timer = useRef(null);
-
-  useEffect(() => {
-    if (!batch.inCorso) return undefined;
-    timer.current = setInterval(async () => {
-      const s = await getStatoAnalisi().catch(() => null);
-      if (!s) return;
-      setBatch(s);
-      if (!s.inCorso) {
-        clearInterval(timer.current);
-        onRicarica();
-      }
-    }, 1000);
-    return () => clearInterval(timer.current);
-  }, [batch.inCorso]);
-
-  async function genera() {
-    const r = await postGeneraAnalisi(true).catch((e) => ({ errore: e.message }));
-    if (r.errore) return setBatch({ inCorso: false, righe: [`errore: ${r.errore}`] });
-    setBatch({ inCorso: true, righe: ['avviato...'] });
-  }
 
   const perReparto = useMemo(
     () => Object.fromEntries(ORDINE_RUOLI.map((r) => [r, soloDelReparto(stato.giocatori, r)])),
@@ -242,6 +221,11 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
           restare raggiungibile sempre, anche a config bloccata o assente. */}
       <section className="dati">
         <h2>Dati</h2>
+
+        {/* Un pulsante solo, sopra i caricamenti a mano: le fonti si rileggono
+            dalla rete, i file si caricano qui sotto. */}
+        <Aggiorna onFinito={onRicarica} />
+
         <UploadListone onImportato={onRicarica} />
 
         <UploadFonte
@@ -304,19 +288,6 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
           )}
         />
 
-        <div className="blocco-dati">
-          <h3>Analisi AI</h3>
-          <p className="muted">
-            Legge le notizie delle fonti attive e scrive una nota per giocatore. Da lanciare prima dell'asta: fa
-            richieste di rete lente.
-          </p>
-          <button className="bottone" onClick={genera} disabled={batch.inCorso}>
-            {batch.inCorso ? 'Analisi in corso…' : 'Genera analisi AI'}
-          </button>
-          {(batch.inCorso || batch.righe.length > 0) && (
-            <pre className="avanzamento">{batch.righe.slice(-12).join('\n')}</pre>
-          )}
-        </div>
       </section>
     </main>
   );
