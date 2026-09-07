@@ -5,6 +5,7 @@ import { stimaCosto, costoReale, chiaveMancante, generaNota, conFonti, nuovoClie
 import { raccogliSegnali, contaSegnali, FONTI_CON_PARSER, PAGINE } from './fantacalcio.js';
 import { raccogliInfortuni, FONTI_INFORTUNI, PAGINE_INFORTUNI } from './infortuni.js';
 import { FONTI_GERARCHIE } from './gerarchie.js';
+import { registra } from './consumo.js';
 
 /** L'aggiornamento completo delle fonti, in un modulo invece che in uno script.
  *
@@ -61,7 +62,7 @@ export function nuovoStato() {
     fase: 'fonti',
     fonti: [],
     avvisi: [],
-    note: { stato: 'attesa', motivo: null, fatte: 0, fallite: 0, totali: null },
+    note: { stato: 'attesa', motivo: null, fatte: 0, fallite: 0, totali: null, stima: null, speso: 0 },
     riepilogo: null,
     errore: null,
     righe: [],
@@ -280,6 +281,12 @@ export async function aggiorna({ stato, conNote = true, soloRaccolta = false, lo
     s.note.stato = 'in-corso';
     su(s);
     const stima = stimaCosto(daAnalizzare);
+    // La stima finisce anche nello stato, non solo nel terminale: chi ha
+    // premuto il pulsante deve poter vedere quanto sta per spendere senza
+    // aprire un log.
+    s.note.stima = { chiamate: stima.chiamate, dollari: stima.dollari, modello: MODELLO };
+    s.note.speso = 0;
+    su(s);
     dillo(`modello: ${MODELLO} ($${PREZZO.input}/1M input, $${PREZZO.output}/1M output)`);
     dillo(`chiamate da fare: ${stima.chiamate}`);
     dillo(`costo stimato: ~$${stima.dollari.toFixed(4)}  (stima locale, il costo reale arriva dai campi usage)`);
@@ -294,6 +301,10 @@ export async function aggiorna({ stato, conNote = true, soloRaccolta = false, lo
       } else {
         uso.input += r.uso.input;
         uso.output += r.uso.output;
+        // Una riga per chiamata, subito: se il giro si interrompe a meta', le
+        // chiamate gia' pagate restano contate.
+        const speso = registra({ tipo: 'note', modello: MODELLO, uso: r.uso });
+        s.note.speso += speso.costo ?? 0;
         salvaNota(g.player_id, conFonti(r.testo, g.articoli));
         s.note.fatte++;
         dillo(`${g.nome.padEnd(20)} nota salvata (${g.articoli.length} articoli, ${r.uso.input}+${r.uso.output} token)`);

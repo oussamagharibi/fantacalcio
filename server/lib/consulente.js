@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { MODELLO, PREZZO } from './analisi.js';
+import { MODELLO } from './analisi.js';
 
 /** Il consulente d'asta: una domanda, una risposta corta.
  *
@@ -127,8 +127,8 @@ export async function chiedi(client, contesto) {
       ok: true,
       testo,
       durata,
+      modello: MODELLO,
       uso: { input: risposta.usage.input_tokens, output: risposta.usage.output_tokens },
-      costo: (risposta.usage.input_tokens / 1e6) * PREZZO.input + (risposta.usage.output_tokens / 1e6) * PREZZO.output,
       troncata: risposta.stop_reason === 'max_tokens',
     };
   } catch (e) {

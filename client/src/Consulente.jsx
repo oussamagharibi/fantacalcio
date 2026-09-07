@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { postConsulente } from './api.js';
 import { costruisciContesto } from './consulente.js';
+import { costo, dollari, somma, token } from './consumo.js';
 
 /** Il consulente d'asta: un pulsante, e la risposta resta li'.
  *
@@ -46,6 +47,7 @@ function Attesa({ da }) {
 
 export default function Consulente({ stato, config, lotto }) {
   const [risposta, setRisposta] = useState(null);
+  const [sessione, setSessione] = useState(null);
   const [errore, setErrore] = useState(null);
   const [da, setDa] = useState(null);
   const inCorso = da !== null;
@@ -61,7 +63,12 @@ export default function Consulente({ stato, config, lotto }) {
       // Il contesto si compone qui dai dati gia' in memoria: nessuna richiesta
       // in piu' prima di quella vera.
       const r = await postConsulente(costruisciContesto(stato, config, lotto));
-      if (vivo.current) setRisposta({ ...r, secondi: (Date.now() - partito) / 1000 });
+      if (vivo.current) {
+        setRisposta({ ...r, secondi: (Date.now() - partito) / 1000 });
+        // Il conto della sessione arriva insieme alla risposta: e' la stessa
+        // richiesta, non una seconda.
+        setSessione(somma(r.consumo?.sessione ?? []));
+      }
     } catch (e) {
       // Un errore non ferma niente: l'asta prosegue senza consulente.
       if (vivo.current)
@@ -96,10 +103,19 @@ export default function Consulente({ stato, config, lotto }) {
         <>
           <div className="cons-risposta">{risposta.testo}</div>
           <p className="cons-conto muted">
-            {risposta.secondi.toFixed(1)}s · {risposta.uso.input.toLocaleString('it-IT')} token in,{' '}
-            {risposta.uso.output.toLocaleString('it-IT')} out · ${risposta.costo.toFixed(4)}
+            questa domanda: {risposta.secondi.toFixed(1)}s · {token(risposta.uso.input)} token in,{' '}
+            {token(risposta.uso.output)} out ·{' '}
+            {risposta.costo === null ? 'costo non calcolabile' : dollari(risposta.costo)}
             {risposta.troncata && <span className="avviso"> · risposta tagliata dal limite di lunghezza</span>}
           </p>
+          {sessione && (
+            /* Il totale da quando il server e acceso, con scritto da quando:
+               un numero senza un momento a cui riferirsi non si sa leggere. */
+            <p className="cons-conto muted">
+              da inizio sessione: {sessione.chiamate} domande · {token(sessione.input + sessione.output)} token ·{' '}
+              {costo(sessione)}
+            </p>
+          )}
         </>
       )}
     </div>

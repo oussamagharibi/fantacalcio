@@ -18,11 +18,18 @@ import { salvaEImportaStats } from './lib/stats.js';
 import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
 import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente, MOTIVI } from './lib/consulente.js';
+import { registra, consumo } from './lib/consumo.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
  *  dall'esterno, e su localhost soltanto non lo vedrebbe. */
 const HOST = process.env.HOST ?? '0.0.0.0';
+
+/** Da quando conta "questa sessione" nel pannello dell asta: da quando il
+ *  server e acceso. Non e la stessa cosa dell asta - un riavvio azzera il
+ *  parziale, non il totale - ma e un momento che si puo nominare, e a schermo
+ *  c e scritto quale. */
+const DA_QUANDO = new Date().toISOString();
 
 const DIST = path.join(ROOT, 'client', 'dist');
 const CLIENT_BUILDATO = fs.existsSync(path.join(DIST, 'index.html'));
@@ -315,9 +322,16 @@ app.post('/api/consulente', async (req, reply) => {
     );
     return reply.code(502).send({ error: r.errore, motivo: r.motivo });
   }
-  req.log.info({ durataMs: r.durata, ...r.uso, troncata: r.troncata }, 'consulente: risposta');
-  return r;
+  // Il costo lo calcola e lo scrive consumo.js: un tariffario solo, e la riga
+  // in archivio prima ancora di mandare la risposta a chi l'ha chiesta.
+  const speso = registra({ tipo: 'consulente', modello: r.modello, uso: r.uso });
+  req.log.info({ durataMs: r.durata, ...r.uso, costo: speso.costo, troncata: r.troncata }, 'consulente: risposta');
+  return { ...r, costo: speso.costo, consumo: consumo(DA_QUANDO) };
 });
+
+/** Il conto delle chiamate a Claude. `da` di default e' l'accensione del
+ *  server: e' quello che il pannello dell'asta chiama "questa sessione". */
+app.get('/api/consumo', (req) => consumo(req.query?.da ?? DA_QUANDO));
 
 app.post('/api/reset', (req) => {
   const bak = backup('pre-reset');

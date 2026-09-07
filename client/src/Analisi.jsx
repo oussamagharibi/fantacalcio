@@ -9,6 +9,7 @@ import Rendimento from './Rendimento.jsx';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import Stella from './Stella.jsx';
 import Aggiorna from './Aggiorna.jsx';
+import Consumo from './Consumo.jsx';
 import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squadreDi, FILTRI_VUOTI } from './analisiFiltri.js';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
@@ -288,6 +289,7 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
           )}
         />
 
+        <Consumo ricarica={stato} />
       </section>
     </main>
   );

@@ -269,6 +269,14 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 .ballo-spiega { margin-top: 5px; font-size: 11.5px; color: var(--muted); }
 .det-sez .ballo-riga { background: rgba(4, 11, 26, 0.5); }
 
+/* La stima si stacca: e' un numero da leggere prima di lasciar correre. */
+.agg-stima {
+  margin-top: 12px; padding: 7px 10px; border-radius: 8px; font-size: 12.5px;
+  background: var(--card-alta); border-left: 3px solid var(--oro);
+}
+.consumo-tab { margin-top: 10px; }
+.consumo-tab tr.consumo-totale td { border-top: 1px solid var(--linea-forte); }
+
 .agg-fase { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: baseline; gap: 8px; }
 .agg-avanzamento { margin-top: 14px; }
 .agg-avanzamento h4 {

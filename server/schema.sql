@@ -142,6 +142,21 @@ CREATE TABLE IF NOT EXISTS gerarchie (
   PRIMARY KEY (player_id_titolare, player_id_alternativa, fonte)
 );
 
+-- Quanto e costato chiedere a Claude, una riga per chiamata.
+-- costo NULL vuol dire che il modello non era nel tariffario al momento della
+-- chiamata: i token restano, il costo no. Una stima verosimile finirebbe
+-- sommata a quelle vere e nessuno saprebbe piu quale parte del totale e reale.
+-- Le righe non si cancellano con "Nuova asta": i soldi sono stati spesi.
+CREATE TABLE IF NOT EXISTS consumo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tipo TEXT,
+  modello TEXT,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  costo REAL,
+  created_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS articles (
   url TEXT PRIMARY KEY,
   titolo TEXT,

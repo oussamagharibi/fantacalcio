@@ -57,6 +57,18 @@ function RigaFonte({ f }) {
   );
 }
 
+/** La stima prima di spendere. Il terminale la stampava gia'; qui si vede
+ *  anche a schermo, che e' dove sta chi ha premuto il pulsante. */
+function Stima({ note }) {
+  if (!note?.stima) return null;
+  return (
+    <p className="agg-stima">
+      {note.stima.chiamate} chiamate a {note.stima.modello} · costo stimato ~${note.stima.dollari.toFixed(4)}
+      <span className="muted"> (stima locale: il costo vero arriva dai token che conta l'API)</span>
+    </p>
+  );
+}
+
 function Note({ note }) {
   if (!note) return null;
   if (note.stato === 'in-corso')
@@ -64,6 +76,9 @@ function Note({ note }) {
       <p className="agg-note">
         <span className="agg-segno corso">◐</span> Note AI: {note.fatte} di {note.totali} generate
         {note.fallite > 0 && <> · {note.fallite} fallite</>}
+        {/* Quanto si e' gia' speso, mentre si spende: la stima sopra dice
+            quanto costera', questo dice a che punto si e'. */}
+        {note.speso > 0 && <> · ${note.speso.toFixed(4)} finora</>}
       </p>
     );
   if (note.stato === 'fatta')
@@ -181,6 +196,7 @@ export default function Aggiorna({ onFinito }) {
               </div>
             );
           })}
+          <Stima note={stato.note} />
           <Note note={stato.note} />
         </div>
       )}
