@@ -49,3 +49,7 @@ export const postReset = () => invia('/api/reset', {});
  *  409 se ne sta gia' girando una. */
 export const postAggiorna = () => invia('/api/news/genera', { conferma: true });
 export const getStatoAggiornamento = () => json('/api/news/stato');
+
+/** Il consulente d asta. Il contesto lo compone il browser: qui si spedisce
+ *  e basta. 503 se la chiave non c e, 502 se il modello non ha risposto. */
+export const postConsulente = (contesto) => invia('/api/consulente', { contesto });

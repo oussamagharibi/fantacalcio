@@ -17,6 +17,7 @@ import {
 import { salvaEImportaStats } from './lib/stats.js';
 import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
+import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente } from './lib/consulente.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
@@ -284,6 +285,28 @@ app.post('/api/news/genera', (req, reply) => {
 });
 
 app.get('/api/news/stato', () => statoBatch());
+
+/** Il consulente d'asta. Si preme a mano, una domanda alla volta.
+ *
+ *  Il contesto lo compone il browser da quello che ha gia' in memoria: qui non
+ *  si rilegge niente dall'archivio, perche' questa chiamata arriva nel mezzo di
+ *  un rilancio e ogni millisecondo speso e' un millisecondo tolto a chi sta
+ *  battendo. Le istruzioni invece stanno nel server e non arrivano dalla rete.
+ *
+ *  Se qualcosa va storto si risponde con l'errore e basta: l'asta prosegue
+ *  senza consulente, che e' come e' andata fino a ieri. */
+app.post('/api/consulente', async (req, reply) => {
+  if (chiaveMancante())
+    return reply.code(503).send({ error: 'ANTHROPIC_API_KEY non impostata sul server: il consulente non e\' disponibile' });
+  const contesto = req.body?.contesto;
+  if (!contesto || typeof contesto !== 'object') return reply.code(400).send({ error: 'contesto mancante' });
+  const r = await chiedi(nuovoConsulente(), contesto);
+  if (!r.ok) {
+    req.log.warn({ errore: r.errore }, 'consulente non ha risposto');
+    return reply.code(502).send({ error: r.errore });
+  }
+  return r;
+});
 
 app.post('/api/reset', (req) => {
   const bak = backup('pre-reset');

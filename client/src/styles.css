@@ -193,6 +193,18 @@ button.chip:hover { color: var(--fg); background: var(--card-alta); }
 }
 .centro-due.piena { grid-template-columns: minmax(0, 1fr); }
 
+/* Il consulente: pulsante e risposta. La risposta e' testo da leggere, non un
+   dato da consultare: interlinea larga, larghezza piena, niente colonne. */
+.cons-testa { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cons-nota { font-size: 12px; }
+.cons-risposta {
+  margin-top: 12px; padding: 12px 14px; background: rgba(4, 11, 26, 0.72);
+  border-radius: var(--r); border-left: 3px solid var(--acc);
+  font-size: 13.5px; line-height: 1.55; white-space: pre-wrap;
+}
+.cons-conto { margin-top: 6px; font-size: 11px; }
+.cons-errore { margin-top: 10px; }
+
 .colonna-destra { display: flex; flex-direction: column; gap: 12px; }
 
 /* "Vice dichiarato": quello che una fonte afferma. Sta sopra le dedotte e si

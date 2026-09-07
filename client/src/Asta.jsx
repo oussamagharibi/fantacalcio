@@ -8,6 +8,7 @@ import Carriera from './Carriera.jsx';
 import Rendimento from './Rendimento.jsx';
 import Preparazione from './Preparazione.jsx';
 import { ColonnaDestra, colonnaDestraPiena } from './Alternative.jsx';
+import Consulente from './Consulente.jsx';
 import { postReset } from './api.js';
 
 const MIN_LETTERE = 3;
@@ -438,6 +439,11 @@ L'operazione non si annulla. Procedere?`
             lotto chiuso - i ballottaggi di chi ho gia' in rosa. */}
         {destraPiena && <ColonnaDestra stato={stato} lotto={lotto} onApri={onApri} />}
         </div>
+
+        {/* Il consulente sotto il pannello centrale, largo quanto la colonna:
+            una risposta di sei righe in una colonna stretta si legge male, e
+            questa e la cosa che si guarda prima di rilanciare. */}
+        <Consulente stato={stato} config={config} lotto={lotto} />
 
         <p className="scorciatoie">
           <kbd>Ctrl+Z</kbd> annulla l'ultima azione &middot; <kbd>Esc</kbd> chiude il lotto &middot; <kbd>1</kbd>-
