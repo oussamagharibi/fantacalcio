@@ -17,7 +17,7 @@ import {
 import { salvaEImportaStats } from './lib/stats.js';
 import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
-import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente } from './lib/consulente.js';
+import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente, MOTIVI } from './lib/consulente.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
@@ -297,14 +297,25 @@ app.get('/api/news/stato', () => statoBatch());
  *  senza consulente, che e' come e' andata fino a ieri. */
 app.post('/api/consulente', async (req, reply) => {
   if (chiaveMancante())
-    return reply.code(503).send({ error: 'ANTHROPIC_API_KEY non impostata sul server: il consulente non e\' disponibile' });
+    return reply.code(503).send({
+      error: "ANTHROPIC_API_KEY non impostata sul server",
+      motivo: MOTIVI.chiave,
+    });
   const contesto = req.body?.contesto;
-  if (!contesto || typeof contesto !== 'object') return reply.code(400).send({ error: 'contesto mancante' });
+  if (!contesto || typeof contesto !== 'object')
+    return reply.code(400).send({ error: 'contesto mancante', motivo: MOTIVI.richiesta });
   const r = await chiedi(nuovoConsulente(), contesto);
   if (!r.ok) {
-    req.log.warn({ errore: r.errore }, 'consulente non ha risposto');
-    return reply.code(502).send({ error: r.errore });
+    // Il motivo vero nel log, non "non ha risposto": un timeout e una chiave
+    // scaduta si guardano in due posti diversi, e senza il motivo si perde
+    // tempo a cercare quello sbagliato.
+    req.log.warn(
+      { motivo: r.motivo, errore: r.errore, tecnico: r.tecnico, durataMs: r.durata },
+      'consulente: nessuna risposta'
+    );
+    return reply.code(502).send({ error: r.errore, motivo: r.motivo });
   }
+  req.log.info({ durataMs: r.durata, ...r.uso, troncata: r.troncata }, 'consulente: risposta');
   return r;
 });
 

@@ -2,7 +2,6 @@ import { statoGiocatore } from './azioni.js';
 import { fantamedie, golSubiti, indisponibilita, rigoriFanta, rigorista, stagioniXg, titolarita } from './giocatore.js';
 import { alternative } from './alternative.js';
 import { perGiocatore as gerarchieDi } from './gerarchie.js';
-import { FASCE_MODIFICATORE } from './regolamento.js';
 
 /** Il contesto da mandare al consulente.
  *
@@ -121,7 +120,9 @@ export function difesaPerModificatore(presi, stato) {
     // modificatore: si dice quanti ne mancano invece di darne una parziale.
     mediaGruppo: gruppo.length === 4 ? arrotonda(gruppo.reduce((s, x) => s + x.mv, 0) / 4) : null,
     quantiSenzaMediaVoto: [...portieri.slice(0, 1), ...difensori.slice(0, 3)].filter((x) => x.mv === null).length,
-    fasce: FASCE_MODIFICATORE,
+    // Le fasce del modificatore NON viaggiano qui: sono gia' nelle istruzioni
+    // di sistema, e ripeterle era pagare duecento caratteri per dire due volte
+    // la stessa cosa.
   };
 }
 

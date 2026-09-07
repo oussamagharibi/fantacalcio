@@ -2,7 +2,14 @@ async function json(url, opts) {
   const r = await fetch(url, opts);
   const body = await r.json().catch(() => ({}));
   if (!r.ok)
-    throw Object.assign(new Error(body.error ?? `HTTP ${r.status}`), { campo: body.campo, status: r.status });
+    // motivo: il codice con cui il server dice PERCHE non ha funzionato.
+    // Senza, a schermo resterebbe "non ha risposto" per un timeout come per una
+    // chiave scaduta, che si guardano in due posti diversi.
+    throw Object.assign(new Error(body.error ?? `HTTP ${r.status}`), {
+      campo: body.campo,
+      motivo: body.motivo,
+      status: r.status,
+    });
   return body;
 }
 
