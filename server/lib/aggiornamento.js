@@ -1,7 +1,7 @@
 import { getDb, backup } from '../db.js';
 import { leggiFonti, risolviFeed, risolviPagine, FONTI_PATH } from './fonti.js';
 import { raccogli, associa, perGiocatore, salvaNota, GIORNI_MAX, CARATTERI_MINIMI } from './notizie.js';
-import { stimaCosto, costoReale, chiaveMancante, generaNota, conFonti, nuovoClient, MODELLO, PREZZO } from './analisi.js';
+import { stimaCosto, costoReale, chiaveMancante, generaNota, conFonti, nuovoClient, MODELLO, PREZZO, scriviCosto } from './analisi.js';
 import { raccogliSegnali, contaSegnali, FONTI_CON_PARSER, PAGINE } from './fantacalcio.js';
 import { raccogliInfortuni, FONTI_INFORTUNI, PAGINE_INFORTUNI } from './infortuni.js';
 import { FONTI_GERARCHIE } from './gerarchie.js';
@@ -287,9 +287,9 @@ export async function aggiorna({ stato, conNote = true, soloRaccolta = false, lo
     s.note.stima = { chiamate: stima.chiamate, dollari: stima.dollari, modello: MODELLO };
     s.note.speso = 0;
     su(s);
-    dillo(`modello: ${MODELLO} ($${PREZZO.input}/1M input, $${PREZZO.output}/1M output)`);
+    dillo(`modello: ${MODELLO} ${PREZZO ? `($${PREZZO.input}/1M input, $${PREZZO.output}/1M output)` : "(modello fuori tariffario: nessuna stima)"}`);
     dillo(`chiamate da fare: ${stima.chiamate}`);
-    dillo(`costo stimato: ~$${stima.dollari.toFixed(4)}  (stima locale, il costo reale arriva dai campi usage)`);
+    dillo(`costo stimato: ~${scriviCosto(stima.dollari)}  (stima locale, il costo reale arriva dai campi usage)`);
 
     const client = nuovoClient();
     const uso = { input: 0, output: 0 };
@@ -312,7 +312,7 @@ export async function aggiorna({ stato, conNote = true, soloRaccolta = false, lo
       su(s);
     }
     s.note.costo = costoReale(uso);
-    chiudi('fatta', `note generate: ${s.note.fatte} | fallite: ${s.note.fallite} | costo reale: $${costoReale(uso).toFixed(4)}`);
+    chiudi('fatta', `note generate: ${s.note.fatte} | fallite: ${s.note.fallite} | costo reale: ${scriviCosto(costoReale(uso))}`);
     if (s.note.fallite) avvisa(`${s.note.fallite} note non sono state generate: l'API ha risposto con un errore.`);
   }
 

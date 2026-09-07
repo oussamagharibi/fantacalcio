@@ -11,18 +11,21 @@ import { getDb } from '../db.js';
 
 /** Tariffe in dollari per milione di token.
  *
- *  Annotate il 7 settembre 2026. NON si aggiornano da sole: se Anthropic cambia
- *  listino, questa tabella resta indietro e i costi salvati con la vecchia
- *  tariffa restano quelli - un costo e' un fatto del giorno in cui e' stato
- *  calcolato, non un valore da ricalcolare a posteriori.
+ *  NON si aggiornano da sole: se Anthropic cambia listino, questa tabella resta
+ *  indietro finche' non la si tocca a mano. I costi gia' salvati restano quelli
+ *  calcolati con la tariffa in vigore allora - un costo e' un fatto del giorno
+ *  in cui e' stato pagato, non un numero da ricalcolare a posteriori.
  *
- *  C'e' solo il modello che l'applicazione usa davvero. Aggiungerne altri "per
- *  sicurezza" vorrebbe dire scrivere prezzi che non ho verificato, e un prezzo
- *  inventato e' peggio di un prezzo assente: quello assente si vede. */
+ *  C'e' il modello in uso piu' quelli con cui si e' gia' speso: le righe vecchie
+ *  in archivio si spiegano solo se la loro tariffa e' ancora scritta da qualche
+ *  parte. Non ce ne sono altri messi "per sicurezza": un prezzo non verificato
+ *  e' peggio di un prezzo assente, perche' quello assente si vede. */
 export const TARIFFE = {
+  'claude-sonnet-5': { input: 2.0, output: 10.0 },
+  // Usato fino al 7 settembre 2026: resta per le righe scritte allora.
   'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
 };
-export const TARIFFE_AGGIORNATE_AL = '2026-09-07';
+export const TARIFFE_AGGIORNATE_AL = '2026-09-08';
 
 /** Il costo di una chiamata, o null se il modello non e' in tabella.
  *  Null e non una stima: un numero verosimile ma inventato finirebbe sommato

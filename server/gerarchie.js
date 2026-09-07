@@ -1,6 +1,6 @@
 import { backup } from './db.js';
 import { leggiFonti } from './lib/fonti.js';
-import { MODELLO, PREZZO, costoReale } from './lib/analisi.js';
+import { MODELLO, PREZZO, costoReale, scriviCosto } from './lib/analisi.js';
 import { segmenta, stima, estrai, nuovoClient, chiaveMancante, PAGINE_GERARCHIE } from './lib/gerarchie.js';
 
 /** Estrazione delle gerarchie titolare/vice. Costa: una chiamata a Claude per
@@ -45,10 +45,10 @@ if (bloccante) log('Una o piu' + "' pagine non si segmentano per intero: le squa
 
 sezione('COSTO');
 const s = stima(esiti);
-log(`modello: ${MODELLO} ($${PREZZO.input}/1M input, $${PREZZO.output}/1M output)`);
+log(`modello: ${MODELLO} ${PREZZO ? `($${PREZZO.input}/1M input, $${PREZZO.output}/1M output)` : "(modello fuori tariffario: nessuna stima)"}`);
 log(`chiamate da fare: ${s.chiamate} (una per squadra per pagina)`);
 log(`token stimati: ~${s.tokenInput.toLocaleString('it-IT')} input + ~${s.tokenOutput.toLocaleString('it-IT')} output`);
-log(`costo stimato: ~$${s.dollari.toFixed(4)}  (stima locale, il costo reale arriva dai campi usage)`);
+log(`costo stimato: ~${scriviCosto(s.dollari)}  (stima locale, il costo reale arriva dai campi usage)`);
 
 if (SOLO_SEGMENTAZIONE) {
   log('--solo-segmentazione: mi fermo qui, nessuna chiamata fatta.');
@@ -73,5 +73,5 @@ sezione('RIEPILOGO');
 for (const r of riepilogo)
   log(`${r.fonte.padEnd(32)} ${r.squadre} squadre | coppie abbinate: ${r.abbinate} | scritte: ${r.scritte} | rimosse dal giro precedente: ${r.rimossi}`);
 log(`token reali: ${uso.input.toLocaleString('it-IT')} input + ${uso.output.toLocaleString('it-IT')} output`);
-log(`costo reale: $${costoReale(uso).toFixed(4)}`);
+log(`costo reale: ${scriviCosto(costoReale(uso))}`);
 process.exit(0);

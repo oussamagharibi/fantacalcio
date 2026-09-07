@@ -63,7 +63,7 @@ function Stima({ note }) {
   if (!note?.stima) return null;
   return (
     <p className="agg-stima">
-      {note.stima.chiamate} chiamate a {note.stima.modello} · costo stimato ~${note.stima.dollari.toFixed(4)}
+      {note.stima.chiamate} chiamate a {note.stima.modello} · costo stimato {note.stima.dollari === null ? "non calcolabile" : `~$${note.stima.dollari.toFixed(4)}`}
       <span className="muted"> (stima locale: il costo vero arriva dai token che conta l'API)</span>
     </p>
   );

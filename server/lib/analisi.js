@@ -1,10 +1,16 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { TARIFFE } from './consumo.js';
 
-/** Il modello e' quello chiesto per questo modulo. Non e' il default del
- *  progetto: e' una scelta di costo per un compito di sola sintesi. */
-export const MODELLO = 'claude-sonnet-4-6';
-/** Listino Anthropic per Sonnet 4.6, dollari per milione di token. */
-export const PREZZO = { input: 3.0, output: 15.0 };
+/** Il modello di tutte le chiamate dell'applicazione: le note, il consulente
+ *  in asta, le gerarchie. Sta scritto qui una volta sola. */
+export const MODELLO = 'claude-sonnet-5';
+
+/** Il prezzo del modello in uso, preso dal tariffario che sta in consumo.js.
+ *  Non e' una seconda tabella: due listini nello stesso repository divergono
+ *  al primo aggiornamento, e la stima direbbe una cifra e il conto un'altra.
+ *  null se il modello non e' in tariffario - allora non si stima, si dice che
+ *  non si sa. */
+export const PREZZO = TARIFFE[MODELLO] ?? null;
 /** La nota sono tre righe piu' un verdetto: mille token sono gia' abbondanti. */
 const MAX_TOKENS = 1000;
 /** Tetto per estratto. L'estratto arriva gia' ritagliato attorno al punto in
@@ -35,11 +41,16 @@ export function stimaCosto(giocatori) {
     chiamate: giocatori.length,
     tokenInput: input,
     tokenOutput: output,
-    dollari: (input / 1e6) * PREZZO.input + (output / 1e6) * PREZZO.output,
+    dollari: PREZZO ? (input / 1e6) * PREZZO.input + (output / 1e6) * PREZZO.output : null,
   };
 }
 
-export const costoReale = (uso) => (uso.input / 1e6) * PREZZO.input + (uso.output / 1e6) * PREZZO.output;
+/** Come si scrive una cifra che puo non esserci. Senza tariffa non si stampa
+ * uno zero: si dice che non si sa. */
+export const scriviCosto = (x) => (typeof x === 'number' ? '$' + x.toFixed(4) : 'non calcolabile');
+
+export const costoReale = (uso) =>
+  PREZZO ? (uso.input / 1e6) * PREZZO.input + (uso.output / 1e6) * PREZZO.output : null;
 
 export const chiaveMancante = () => !process.env.ANTHROPIC_API_KEY;
 

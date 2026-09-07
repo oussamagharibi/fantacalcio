@@ -317,7 +317,7 @@ export function stima(esiti) {
     chiamate,
     tokenInput,
     tokenOutput,
-    dollari: (tokenInput / 1e6) * PREZZO.input + (tokenOutput / 1e6) * PREZZO.output,
+    dollari: PREZZO ? (tokenInput / 1e6) * PREZZO.input + (tokenOutput / 1e6) * PREZZO.output : null,
   };
 }
 
