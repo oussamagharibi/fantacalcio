@@ -3,6 +3,7 @@
 
 import { ORDINE_RUOLI } from './squadre.js';
 import { statoGiocatore } from './azioni.js';
+import { rigorista } from './giocatore.js';
 
 const senzaAccenti = (s) =>
   String(s ?? '')
@@ -23,7 +24,7 @@ export function conStato(giocatori, presi) {
   return giocatori.filter((g) => !g.assente_dal).map((g) => ({ ...g, ...statoGiocatore(g, presi) }));
 }
 
-export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia = null, cerca = '', soloObiettivi = false } = {}) {
+export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia = null, cerca = '', soloObiettivi = false, soloRigoristi = false } = {}) {
   const q = senzaAccenti(cerca).trim();
   return righe
     .filter((g) => !stato || g.stato === stato)
@@ -31,7 +32,8 @@ export function filtra(righe, { stato = null, ruolo = null, squadra = '', fascia
     .filter((g) => !squadra || g.squadra === squadra)
     .filter((g) => fascia === null || g.fascia === fascia)
     .filter((g) => !q || senzaAccenti(g.nome).includes(q))
-    .filter((g) => !soloObiettivi || g.target);
+    .filter((g) => !soloObiettivi || g.target)
+    .filter((g) => !soloRigoristi || !!rigorista(g));
 }
 
 /** Quanto listone e' gia' andato, in totale e ruolo per ruolo. */

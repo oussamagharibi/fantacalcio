@@ -16,6 +16,8 @@ import {
   golSubiti,
   indisponibilita,
   minutiVeri,
+  MOLTI_PARA_RIGORI,
+  paraRigori,
   rigoriFanta,
   rigorista,
   sciogliEntita,
@@ -132,6 +134,7 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, onA
   const ind = indisponibilita(g);
   const rigori = rigoriFanta(g);
   const subiti = golSubiti(g);
+  const parati = paraRigori(g);
   const cambio = cambioSquadra(g);
   const portiere = g.ruolo === 'P';
   /** Il modificatore di difesa si calcola sul portiere e sui tre migliori
@@ -447,6 +450,46 @@ export default function Giocatore({ g, stato, onStato, onAvviso, onIndietro, onA
         {ballottaggi.length > 0 && (
           <Sezione titolo="Ballottaggi" fonte="probabili formazioni fantacalcio.it">
             <BallottaggiGiocatore stato={stato} giocatore={g} onApri={onApri} />
+          </Sezione>
+        )}
+
+        {/* I rigori parati, stagione per stagione. Solo i portieri, e solo chi
+            ne ha davvero parati: in questa lega ognuno vale +3, come un gol,
+            quindi la somma non basta - conta anche in quante stagioni. */}
+        {parati && (
+          <Sezione titolo="Rigori parati" fonte="Excel fantacalcio.it">
+            <table className="det-tab">
+              <thead>
+                <tr>
+                  <th>Stagione</th>
+                  <th className="num">Presenze</th>
+                  <th className="num">Rigori parati</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parati.stagioni.map((r) => (
+                  <tr key={r.stagione}>
+                    <td>{r.stagione}</td>
+                    <td className="num">{r.presenze ?? ''}</td>
+                    <td className="num">{r.parati}</td>
+                  </tr>
+                ))}
+                <tr className="det-somma">
+                  <td>
+                    <strong>Totale</strong>
+                  </td>
+                  <td className="num" />
+                  <td className="num">
+                    <strong>{parati.totale}</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="muted">
+              {parati.totale >= MOLTI_PARA_RIGORI
+                ? `${parati.totale} rigori parati valgono ${parati.totale * 3} punti bonus: quanto ${parati.totale} gol.`
+                : 'Un rigore parato vale +3, come un gol.'}
+            </p>
           </Sezione>
         )}
 

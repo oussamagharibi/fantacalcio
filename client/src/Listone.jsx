@@ -4,6 +4,7 @@ import { BadgeSquadra } from './Badge.jsx';
 import { COLONNE, differenza, filtraOrdina, prossimoOrdine } from './listoneFiltri.js';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import Stella from './Stella.jsx';
+import { ChipsGiocatore } from './Chips.jsx';
 
 /** Vista tabellare del listone: dati grezzi, densi, da consultare. Niente card
  *  e niente segnali - per quelli c'e' la pagina Analisi. Qui si vuole vedere
@@ -13,7 +14,7 @@ export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAv
   /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
      giocatore smonta questa pagina, e con i filtri in uno stato locale
      tornare indietro li avrebbe azzerati. */
-  const { ordine, ruolo, squadra, fascia, cerca, soloAttivi, soloObiettivi } = filtri;
+  const { ordine, ruolo, squadra, fascia, cerca, soloAttivi, soloObiettivi, soloRigoristi } = filtri;
   const setOrdine = (v) => onFiltri({ ...filtri, ordine: typeof v === 'function' ? v(filtri.ordine) : v });
   const setRuolo = (v) => onFiltri({ ...filtri, ruolo: typeof v === 'function' ? v(filtri.ruolo) : v });
   const setSquadra = (v) => onFiltri({ ...filtri, squadra: typeof v === 'function' ? v(filtri.squadra) : v });
@@ -21,6 +22,7 @@ export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAv
   const setCerca = (v) => onFiltri({ ...filtri, cerca: typeof v === 'function' ? v(filtri.cerca) : v });
   const setSoloAttivi = (v) => onFiltri({ ...filtri, soloAttivi: typeof v === 'function' ? v(filtri.soloAttivi) : v });
   const setSoloObiettivi = (v) => onFiltri({ ...filtri, soloObiettivi: typeof v === 'function' ? v(filtri.soloObiettivi) : v });
+  const setSoloRigoristi = (v) => onFiltri({ ...filtri, soloRigoristi: typeof v === 'function' ? v(filtri.soloRigoristi) : v });
 
   const squadre = useMemo(
     () => [...new Set(stato.giocatori.map((g) => g.squadra))].sort((a, b) => a.localeCompare(b, 'it')),
@@ -28,8 +30,8 @@ export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAv
   );
 
   const righe = useMemo(
-    () => filtraOrdina(stato.giocatori, { ruolo, squadra, fascia, cerca, soloAttivi, soloObiettivi }, ordine),
-    [stato.giocatori, ordine, ruolo, squadra, fascia, cerca, soloAttivi, soloObiettivi]
+    () => filtraOrdina(stato.giocatori, { ruolo, squadra, fascia, cerca, soloAttivi, soloObiettivi, soloRigoristi }, ordine),
+    [stato.giocatori, ordine, ruolo, squadra, fascia, cerca, soloAttivi, soloObiettivi, soloRigoristi]
   );
 
   const ordina = (c) => setOrdine((o) => prossimoOrdine(o, c));
@@ -107,6 +109,10 @@ export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAv
         <button className={`chip${soloObiettivi ? ' on' : ''}`} onClick={() => setSoloObiettivi(!soloObiettivi)}>
           ★ solo obiettivi
         </button>
+        {/* Un chip solo: prende i primi e i secondi rigoristi insieme. */}
+        <button className={`chip${soloRigoristi ? ' on' : ''}`} onClick={() => setSoloRigoristi(!soloRigoristi)}>
+          rigoristi
+        </button>
         <span className="spazio" />
         <span className="conteggio">
           <strong>{righe.length}</strong> risultati
@@ -134,6 +140,7 @@ export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAv
                   {ordine.chiave === c.chiave ? (ordine.crescente ? ' ▲' : ' ▼') : ''}
                 </th>
               ))}
+              <th>Chip</th>
               <th className="azioni">Azioni</th>
             </tr>
           </thead>
@@ -172,6 +179,9 @@ export default function Listone({ stato, filtri, onFiltri, onApri, onStato, onAv
                     ) : (
                       <span className="muted">attivo</span>
                     )}
+                  </td>
+                  <td className="cella-chip">
+                    <ChipsGiocatore g={g} />
                   </td>
                   <td className="azioni">
                     {/* Chi non e' piu' in listino non si compra: niente pulsanti. */}

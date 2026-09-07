@@ -10,6 +10,8 @@ import AzioniGiocatore from './AzioniGiocatore.jsx';
 import Stella from './Stella.jsx';
 import Aggiorna from './Aggiorna.jsx';
 import Consumo from './Consumo.jsx';
+import { ChipRigorista, ChipParaRigori } from './Chips.jsx';
+import { paraRigori } from './giocatore.js';
 import { commutaFascia, filtra, perReparto as soloDelReparto, quantiAttivi, squadreDi, FILTRI_VUOTI } from './analisiFiltri.js';
 
 /** Segnale come chip colorato: rosso infortunio, blu rigorista, verde
@@ -25,7 +27,8 @@ function ChipSegnale({ s }) {
       </span>
     );
   }
-  if (s.tipo === 'rigorista') return <span className="chip rig" title={s.testo}>{s.testo.replace('rigorista ', 'rig ')}</span>;
+  // Il rigorista ha il suo componente: la gerarchia si legge li, non qui.
+  if (s.tipo === 'rigorista') return null;
   const perc = /(\d+)%/.exec(s.testo)?.[1];
   const titolare = s.testo.startsWith('titolare');
   return (
@@ -66,13 +69,18 @@ function CardGiocatore({ g, onApri, stato, onStato, onAvviso }) {
         <Fascia valore={g.fascia} ruolo={g.ruolo} />
       </div>
 
-      {g.segnali.length > 0 && (
+      {/* Anche senza segnali: i para-rigori vengono dallo storico, non da una
+          fonte di giornata, e un portiere che ne ha parati tre lo deve dire
+          pure la settimana in cui di lui non si parla. */}
+      {(g.segnali.length > 0 || paraRigori(g)) && (
         <div className="card-chip">
           {/* Una chip per riga: due fonti sullo stesso tipo sono due chip,
               e la differenza si vede invece di sparire. */}
           {g.segnali.map((s, i) => (
             <ChipSegnale key={`${s.tipo}-${s.fonte ?? i}`} s={s} />
           ))}
+          <ChipRigorista g={g} />
+          <ChipParaRigori g={g} />
         </div>
       )}
 
@@ -190,6 +198,17 @@ export default function Analisi({ stato, onStato, onRicarica, filtri, onFiltri, 
         <button className={`chip${filtri.soloTarget ? ' on' : ''}`} onClick={() => commuta('soloTarget')}>
           ★ obiettivi
         </button>
+        {/* Un chip solo: prende i primi e i secondi rigoristi insieme. */}
+        <button className={`chip${filtri.soloRigoristi ? ' on' : ''}`} onClick={() => commuta('soloRigoristi')}>
+          rigoristi
+        </button>
+        {/* Solo fra i portieri: negli altri reparti non filtrerebbe niente,
+            e un chip che non fa niente e peggio di un chip che non c'e. */}
+        {reparto === 'P' && (
+          <button className={`chip${filtri.soloParaRigori ? ' on' : ''}`} onClick={() => commuta('soloParaRigori')}>
+            para-rigori
+          </button>
+        )}
         {attivi > 0 && (
           <button className="chip" onClick={() => imposta(FILTRI_VUOTI)}>
             azzera ({attivi})

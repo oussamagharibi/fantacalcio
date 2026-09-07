@@ -1,4 +1,5 @@
 import { statoGiocatore } from './azioni.js';
+import { paraRigori, rigorista } from './giocatore.js';
 
 /** Ricerca e filtri della pagina Analisi. Stanno fuori dal componente perche'
  *  sono la parte che vale la pena provare da sola: sei criteri combinabili
@@ -21,6 +22,13 @@ export const FILTRI_VUOTI = {
   soloTarget: false,
   soloSegnali: false,
   soloDisponibili: false,
+  // Un filtro solo per i rigoristi: primi e secondi insieme. Due caselle
+  // separate avrebbero chiesto di sapere in anticipo quale gerarchia
+  // interessa, quando la domanda vera e "chi li calcia in questa squadra".
+  soloRigoristi: false,
+  // Solo nel reparto Portieri: negli altri la colonna e vuota per
+  // costruzione e il filtro non avrebbe niente da filtrare.
+  soloParaRigori: false,
 };
 
 /** Le fasce sono a selezione multipla: un chip acceso si spegne, uno spento si
@@ -35,7 +43,16 @@ export const squadreDi = (giocatori) =>
 export const perReparto = (giocatori, ruolo) => giocatori.filter((g) => !g.assente_dal && g.ruolo === ruolo);
 
 export function filtra(giocatori, filtri = {}, presi = []) {
-  const { cerca = '', fasce = [], squadra = '', soloTarget = false, soloSegnali = false, soloDisponibili = false } = filtri;
+  const {
+    cerca = '',
+    fasce = [],
+    squadra = '',
+    soloTarget = false,
+    soloSegnali = false,
+    soloDisponibili = false,
+    soloRigoristi = false,
+    soloParaRigori = false,
+  } = filtri;
   const q = senzaAccenti(cerca).trim();
   return giocatori
     .filter((g) => !q || senzaAccenti(g.nome).includes(q))
@@ -43,7 +60,12 @@ export function filtra(giocatori, filtri = {}, presi = []) {
     .filter((g) => !squadra || g.squadra === squadra)
     .filter((g) => !soloTarget || g.target)
     .filter((g) => !soloSegnali || (g.segnali?.length ?? 0) > 0)
-    .filter((g) => !soloDisponibili || statoGiocatore(g, presi).stato === 'disponibile');
+    .filter((g) => !soloDisponibili || statoGiocatore(g, presi).stato === 'disponibile')
+    .filter((g) => !soloRigoristi || !!rigorista(g))
+    .filter((g) => !soloParaRigori || !!paraRigori(g))
+    // I para-rigori si guardano per confrontarli: chi ne ha di piu sta in
+    // cima, o la lista costringe a cercarlo.
+    .sort((a, b) => (soloParaRigori ? (paraRigori(b)?.totale ?? 0) - (paraRigori(a)?.totale ?? 0) : 0));
 }
 
 /** Quanti filtri sono accesi: serve a mostrare "azzera" solo quando c'e'
@@ -54,4 +76,6 @@ export const quantiAttivi = (f = {}) =>
   (f.squadra ? 1 : 0) +
   (f.soloTarget ? 1 : 0) +
   (f.soloSegnali ? 1 : 0) +
-  (f.soloDisponibili ? 1 : 0);
+  (f.soloDisponibili ? 1 : 0) +
+  (f.soloRigoristi ? 1 : 0) +
+  (f.soloParaRigori ? 1 : 0);

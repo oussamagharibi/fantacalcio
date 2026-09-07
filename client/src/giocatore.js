@@ -66,6 +66,27 @@ export function rigorista(g) {
   return { ordine: m ? Number(m[1]) : null, testo: s.testo };
 }
 
+/** Sopra questa soglia il chip si fa marcato: in questa lega un rigore parato
+ *  vale +3, come un gol, quindi tre parati in archivio sono nove punti che un
+ *  altro portiere non ti da'. */
+export const MOLTI_PARA_RIGORI = 3;
+
+/** Rigori parati, sommati sulle stagioni in archivio.
+ *  Solo per i portieri: negli altri ruoli la colonna esiste ma e' vuota per
+ *  costruzione, e mostrare "para-rigori: 0" a un attaccante sarebbe rumore.
+ *  Zero parati non e' un dato da mostrare: e' l'assenza di una qualita', e la
+ *  differenza fra "non ne ha parati" e "non ha mai calciato in Serie A" non si
+ *  legge da questa colonna. */
+export function paraRigori(g) {
+  if (g?.ruolo !== 'P') return null;
+  const righe = (g?.stats ?? []).filter((r) => (r.rig_parati ?? 0) > 0);
+  if (!righe.length) return null;
+  return {
+    totale: righe.reduce((s, r) => s + r.rig_parati, 0),
+    stagioni: righe.map((r) => ({ stagione: r.stagione, parati: r.rig_parati, presenze: r.pv ?? null })),
+  };
+}
+
 export const infortunio = (g) => segnale(g, 'infortunio');
 
 /** I testi dei segnali arrivano da pagine web e portano ancora le entita'

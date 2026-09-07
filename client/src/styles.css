@@ -755,3 +755,16 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .det-discordi { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 8px; }
 .det-discordi strong { color: var(--oro); }
 .chip.dub { border-color: var(--oro); color: var(--oro); }
+
+/* Rigoristi: la prima scelta e' piena, la seconda resta un contorno. Chi i
+   rigori li calcia e chi li calcerebbe non devono pesare uguale a colpo
+   d'occhio - sono due giocatori con due prezzi diversi. */
+.chip.rigorista { border-color: var(--acc); color: var(--acc); }
+.chip.rigorista1 { background: var(--acc); border-color: var(--acc); color: #08111e; font-weight: 650; }
+.chip.rigorista2 { border-color: var(--acc); color: var(--acc); opacity: 0.72; }
+/* Para-rigori: verde come i bonus. Da tre in su si riempie, perche' a quel
+   punto valgono quanto tre gol. */
+.chip.para { border-color: var(--ok); color: var(--ok); }
+.chip.para.molti { background: var(--ok); border-color: var(--ok); color: #08111e; font-weight: 650; }
+.chips-g { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.tabella-listone td.cella-chip { white-space: nowrap; }

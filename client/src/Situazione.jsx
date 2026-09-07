@@ -5,6 +5,7 @@ import { conStato, filtra, riepilogo, STATI } from './situazione.js';
 import { eseguiAzione } from './azioni.js';
 import AzioniGiocatore from './AzioniGiocatore.jsx';
 import Stella from './Stella.jsx';
+import { ChipsGiocatore } from './Chips.jsx';
 
 /** Dove siamo con l'asta: ogni giocatore del listone con il suo stato, e le
  *  stesse azioni della pagina Asta direttamente sulla riga.
@@ -56,13 +57,14 @@ export default function Situazione({ stato, onStato, filtri, onFiltri, onApri, o
   /* I filtri arrivano da App e tornano ad App: aprire la scheda di un
      giocatore smonta questa pagina, e con i filtri in uno stato locale
      tornare indietro li avrebbe azzerati. */
-  const { stato: filtroStato, ruolo, squadra, fascia, cerca, soloObiettivi } = filtri;
+  const { stato: filtroStato, ruolo, squadra, fascia, cerca, soloObiettivi, soloRigoristi } = filtri;
   const setFiltroStato = (v) => onFiltri({ ...filtri, stato: typeof v === 'function' ? v(filtri.stato) : v });
   const setRuolo = (v) => onFiltri({ ...filtri, ruolo: typeof v === 'function' ? v(filtri.ruolo) : v });
   const setSquadra = (v) => onFiltri({ ...filtri, squadra: typeof v === 'function' ? v(filtri.squadra) : v });
   const setFascia = (v) => onFiltri({ ...filtri, fascia: typeof v === 'function' ? v(filtri.fascia) : v });
   const setCerca = (v) => onFiltri({ ...filtri, cerca: typeof v === 'function' ? v(filtri.cerca) : v });
   const setSoloObiettivi = (v) => onFiltri({ ...filtri, soloObiettivi: typeof v === 'function' ? v(filtri.soloObiettivi) : v });
+  const setSoloRigoristi = (v) => onFiltri({ ...filtri, soloRigoristi: typeof v === 'function' ? v(filtri.soloRigoristi) : v });
 
   /** Quale riga ha un campo aperto. Di norma se lo governa AzioniGiocatore da
    *  solo; qui serve saperlo da fuori, perche' il rilascio del trascinamento
@@ -75,8 +77,8 @@ export default function Situazione({ stato, onStato, filtri, onFiltri, onApri, o
 
   const tutti = useMemo(() => conStato(stato.giocatori, stato.rosa.presi), [stato.giocatori, stato.rosa.presi]);
   const righe = useMemo(
-    () => filtra(tutti, { stato: filtroStato, ruolo, squadra, fascia, cerca, soloObiettivi }),
-    [tutti, filtroStato, ruolo, squadra, fascia, cerca, soloObiettivi]
+    () => filtra(tutti, { stato: filtroStato, ruolo, squadra, fascia, cerca, soloObiettivi, soloRigoristi }),
+    [tutti, filtroStato, ruolo, squadra, fascia, cerca, soloObiettivi, soloRigoristi]
   );
   const r = useMemo(() => riepilogo(tutti), [tutti]);
   const squadre = useMemo(
@@ -193,6 +195,10 @@ export default function Situazione({ stato, onStato, filtri, onFiltri, onApri, o
         <button className={`chip${soloObiettivi ? ' on' : ''}`} onClick={() => setSoloObiettivi(!soloObiettivi)}>
           ★ solo obiettivi
         </button>
+        {/* Un chip solo: prende i primi e i secondi rigoristi insieme. */}
+        <button className={`chip${soloRigoristi ? ' on' : ''}`} onClick={() => setSoloRigoristi(!soloRigoristi)}>
+          rigoristi
+        </button>
         <span className="spazio" />
         <span className="conteggio">
           <strong>{righe.length}</strong> risultati
@@ -218,6 +224,7 @@ export default function Situazione({ stato, onStato, filtri, onFiltri, onApri, o
               <th className="num">Qt.A</th>
               <th className="num">FVM</th>
               <th className="num">Fascia</th>
+              <th>Chip</th>
               <th className="num">Prezzo</th>
               <th>Stato</th>
               <th className="azioni">Azioni</th>
@@ -258,6 +265,9 @@ export default function Situazione({ stato, onStato, filtri, onFiltri, onApri, o
                 <td className="num">{g.quotazione}</td>
                 <td className="num">{g.fvm ?? '-'}</td>
                 <td className="num">{g.fascia ?? '-'}</td>
+                <td className="cella-chip">
+                  <ChipsGiocatore g={g} />
+                </td>
                 {/* Il prezzo c'e' solo per i miei: di un uscito non lo sappiamo. */}
                 <td className="num prezzo">{g.prezzo ?? ''}</td>
                 <td>
