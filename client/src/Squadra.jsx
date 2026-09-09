@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BadgeGiocatore, BadgeSquadra } from './Badge.jsx';
 import { ChipRigorista, ChipParaRigori } from './Chips.jsx';
+import Gestione from './Gestione.jsx';
 import { RUOLI as RUOLI_NOMI } from './squadre.js';
 import { postRosa } from './api.js';
 import {
@@ -396,6 +397,11 @@ export default function Squadra({ stato, onStato, onApri, onAvviso }) {
           ))}
         </ul>
       </section>
+
+      {/* Gestione rosa: sta dopo la formazione perche si legge dopo aver
+          visto chi gioca, e prima della spesa perche la spesa e uno dei suoi
+          ingredienti. */}
+      <Gestione rosa={r} formazione={f.consigliato} onApri={onApri} />
 
       <section className="pannello">
         <h3>Spesa per reparto</h3>

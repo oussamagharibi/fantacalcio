@@ -22,6 +22,25 @@ export const difensoriAmmessi = (moduli = MODULI) => {
 // ---------------------------------------------------------------- sezione 8
 export const MIN_DIFENSORI_MODIFICATORE = 4;
 
+// ---------------------------------------------------------------- sezione 9
+/** I vincoli sugli scambi, in un posto solo: li stampa la pagina Regolamento e
+ *  li cita la sezione Gestione rosa. Uno scambio e' una risorsa contata, e un
+ *  suggerimento che non lo dice invita a bruciarla.
+ *  I numeri stanno accanto al testo perche' servono a fare i conti, non solo
+ *  a essere letti. */
+export const REGOLE_SCAMBI = {
+  massimo: 5,
+  giornateFinaliVietate: 5,
+  preavvisoOre: 48,
+  testo: [
+    'Gli scambi tra le squadre sono consentiti per tutta la durata del campionato, ad eccezione delle ultime 5 giornate.',
+    'Ogni squadra potrà effettuare un massimo di 5 scambi di giocatori nel corso della stagione.',
+    'Un giocatore, una volta ceduto tramite scambio, non potrà più essere riacquistato dalla squadra di provenienza originaria nel corso della stagione, né essere scambiato nuovamente con la squadra di provenienza.',
+    "Affinché uno scambio sia valido ed effettivo per la giornata successiva, dovrà essere annunciato almeno 48 ore prima dell'inizio della giornata di campionato.",
+    'Tutti gli scambi dovranno essere comunicati e notificati a tutti i partecipanti tramite la chat WhatsApp ufficiale della lega.',
+  ],
+};
+
 /** Le fasce del modificatore di difesa, dalla piu' alta alla piu' bassa: si
  *  scorre e vince la prima che accoglie il voto. */
 export const FASCE_MODIFICATORE = [
@@ -182,13 +201,7 @@ export function sezioniRegolamento({ rosa } = {}) {
     {
       n: 9,
       titolo: 'Scambi',
-      elenco: [
-        'Gli scambi tra le squadre sono consentiti per tutta la durata del campionato, ad eccezione delle ultime 5 giornate.',
-        'Ogni squadra potrà effettuare un massimo di 5 scambi di giocatori nel corso della stagione.',
-        'Un giocatore, una volta ceduto tramite scambio, non potrà più essere riacquistato dalla squadra di provenienza originaria nel corso della stagione, né essere scambiato nuovamente con la squadra di provenienza.',
-        "Affinché uno scambio sia valido ed effettivo per la giornata successiva, dovrà essere annunciato almeno 48 ore prima dell'inizio della giornata di campionato.",
-        'Tutti gli scambi dovranno essere comunicati e notificati a tutti i partecipanti tramite la chat WhatsApp ufficiale della lega.',
-      ],
+      elenco: REGOLE_SCAMBI.testo,
     },
     {
       n: 10,

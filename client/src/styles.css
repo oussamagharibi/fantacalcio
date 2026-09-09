@@ -871,3 +871,56 @@ input[type='file'] { padding: 6px; cursor: pointer; }
   .sq-riga { grid-template-columns: 26px minmax(0, 1fr) 42px 52px 52px; }
   .sq-riga .sq-squadra, .sq-riga .sq-mv, .sq-riga .sq-chip { display: none; }
 }
+
+/* ---------------------------------------------------- gestione rosa
+   Ogni gruppo porta il criterio che lo ha prodotto: un elenco di nomi senza
+   il criterio e' un oracolo, si crede o non si crede. */
+.ge-vincoli {
+  margin: 10px 0 14px; padding: 10px 12px; border-radius: var(--r);
+  background: var(--card-alta); border-left: 3px solid var(--oro); font-size: 12.5px;
+}
+.ge-vincoli ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.ge-vincoli li { margin-bottom: 3px; }
+
+.ge-gruppo { margin-bottom: 14px; padding-left: 10px; border-left: 3px solid var(--line); }
+.ge-gruppo.ok { border-left-color: var(--ok); }
+.ge-gruppo.medio { border-left-color: var(--oro); }
+.ge-gruppo.ko { border-left-color: var(--ko); }
+.ge-gruppo h4 { font-size: 14px; margin-bottom: 2px; }
+.ge-criterio { font-size: 11.5px; color: var(--muted); margin-bottom: 7px; font-style: italic; }
+.ge-lista { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.ge-voce {
+  display: grid; align-items: center; gap: 8px; font-size: 12.5px; padding: 3px 6px; border-radius: 6px;
+  grid-template-columns: 24px minmax(0, 140px) minmax(0, 90px) 52px 92px minmax(0, 1fr);
+}
+.ge-voce:hover { background: var(--card-alta); }
+.ge-nome { font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-squadra { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-prezzo { text-align: right; font-variant-numeric: tabular-nums; }
+/* Lo scarto fra dove sta per prezzo e dove sta per resa: verde rende piu' di
+   quanto costa, rosso il contrario. */
+.ge-scarto { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; color: var(--muted); }
+.ge-scarto.su { color: var(--ok); }
+.ge-scarto.giu { color: var(--ko); }
+.ge-perche { color: var(--muted); min-width: 0; }
+
+.ge-titolo-squilibri { font-size: 14px; margin: 16px 0 8px; }
+.ge-squilibri { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.ge-squilibrio {
+  display: flex; flex-direction: column; gap: 2px; font-size: 12.5px;
+  padding: 7px 9px; border-radius: 8px; background: var(--card-alta); border-left: 3px solid var(--line);
+}
+.ge-squilibrio.g3 { border-left-color: var(--ko); }
+.ge-squilibrio.g2 { border-left-color: var(--oro); }
+
+.ge-tabelle { display: grid; gap: 16px; margin-top: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.ge-tabelle h5 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 0 0 6px; }
+.ge-conc, .ge-cop { list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; }
+.ge-conc li.molti strong { color: var(--oro); }
+.ge-cop li.scarsa strong { color: var(--ko); }
+.ge-cop li.giusta strong { color: var(--oro); }
+
+@media (max-width: 900px) {
+  .ge-voce { grid-template-columns: 24px minmax(0, 1fr) 52px 92px; }
+  .ge-voce .ge-squadra, .ge-voce .ge-perche { display: none; }
+}
