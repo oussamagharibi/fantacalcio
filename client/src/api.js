@@ -47,6 +47,10 @@ export const postUscita = (playerId) => invia('/api/usciti', { playerId });
 export const postAnnulla = (playerId) => invia('/api/annulla', playerId ? { playerId } : {});
 export const postTarget = (playerId) => invia('/api/target', { playerId });
 
+/** La rosa a mano, a stagione cominciata: aggiunge, cambia il prezzo, o
+ *  svincola con { rimuovi: true }. Torna lo stato aggiornato. */
+export const postRosa = (corpo) => invia('/api/rosa', corpo);
+
 /** Azzera l'asta: cancella tutti gli acquisti. Chi la chiama deve gia' aver
  *  chiesto conferma - qui non c'e' rete di sicurezza. */
 export const postReset = () => invia('/api/reset', {});

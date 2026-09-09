@@ -768,3 +768,106 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .chip.para.molti { background: var(--ok); border-color: var(--ok); color: #08111e; font-weight: 650; }
 .chips-g { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .tabella-listone td.cella-chip { white-space: nowrap; }
+
+/* ------------------------------------------------- pagina "La mia squadra"
+   L'asta e' finita: qui non si compra, si decide chi gioca. Gli allarmi in
+   cima perche' sono la ragione per cui si apre la pagina. */
+.sq-testa { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.sq .pannello { margin-bottom: 14px; }
+.sq .pannello > h3 { font-size: 15px; margin-bottom: 10px; }
+
+.sq-allarmi { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.sq-allarme {
+  display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+  padding: 6px 9px; border-radius: 8px; background: var(--card-alta);
+  border-left: 3px solid var(--line); font-size: 13px;
+}
+/* La gravita' si vede prima di leggere: rosso indisponibile, oro dubbio o
+   titolarita' bassa, grigio ballottaggio. */
+.sq-allarme.g3 { border-left-color: var(--ko); }
+.sq-allarme.g2 { border-left-color: var(--oro); }
+.sq-allarme.g1 { border-left-color: var(--muted); }
+.sq-segno { width: 14px; text-align: center; font-weight: 700; }
+.sq-allarme.g3 .sq-segno { color: var(--ko); }
+.sq-allarme.g2 .sq-segno { color: var(--oro); }
+.sq-allarme-testo { color: var(--muted); min-width: 0; }
+.sq-fonti { font-size: 11px; }
+.sq-nessun-allarme { font-size: 13px; }
+
+/* Il confronto tre-contro-quattro difensori: sta fuori dal punteggio perche'
+   sei punti di modificatore non si vedono dentro una somma di fantamedie. */
+.sq-confronto {
+  padding: 10px 12px; border-radius: var(--r); background: var(--card-alta);
+  border-left: 3px solid var(--oro); font-size: 13px; line-height: 1.5; margin-bottom: 12px;
+}
+.sq-confronto.incerto { border-left-color: var(--ko); }
+
+.sq-moduli { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.sq-modulo { padding: 9px 10px; border-radius: var(--r); background: rgba(4, 11, 26, 0.5); border: 1px solid var(--line); }
+.sq-modulo.consigliato { border-color: var(--acc); background: var(--card-alta); }
+.sq-modulo.incompleta { opacity: 0.7; }
+.sq-modulo-testa { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sq-modulo-nome { font-size: 16px; font-variant-numeric: tabular-nums; }
+.sq-punteggio { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.sq-punteggio strong { color: var(--fg); }
+.sq-bonus { color: var(--ok); }
+.sq-mod { font-size: 12px; color: var(--muted); }
+.sq-mod.forte { color: var(--ok); font-weight: 650; }
+.sq-mod.spento { color: var(--ko); }
+.sq-mod.incerto { color: var(--oro); }
+.sq-undici { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.sq-slot {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--line);
+  padding: 4px 8px; font-size: 12px; color: var(--fg);
+}
+.sq-slot[data-ruolo='P'] { border-left-color: var(--P); }
+.sq-slot[data-ruolo='D'] { border-left-color: var(--D); }
+.sq-slot[data-ruolo='C'] { border-left-color: var(--C); }
+.sq-slot[data-ruolo='A'] { border-left-color: var(--A); }
+.sq-slot-nome { font-weight: 600; }
+.sq-dettaglio { margin-top: 8px; font-size: 12.5px; }
+
+.sq-panchina { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sq-panchina li { display: flex; align-items: center; gap: 9px; font-size: 13px; padding: 3px 6px; border-radius: 6px; }
+/* I primi cinque sono quelli che entrano davvero: le sostituzioni sono cinque. */
+.sq-panchina li.probabile { background: var(--card-alta); }
+.sq-ordine { width: 18px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.sq-spesa { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.sq-spesa li { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+.sq-spesa .punto { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.sq-spesa strong:first-of-type { min-width: 110px; }
+.sq-barra { flex: 1; height: 8px; background: rgba(4, 11, 26, 0.72); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.sq-barra i { display: block; height: 100%; }
+.sq-cr { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+.sq-caro { font-size: 11.5px; }
+
+.sq-lista { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.sq-riga {
+  display: grid; align-items: center; gap: 9px; font-size: 13px; padding: 4px 7px; border-radius: 6px;
+  grid-template-columns: 26px minmax(0, 1.1fr) minmax(0, 1fr) 42px 52px 52px 52px minmax(0, 1.4fr) 28px;
+}
+.sq-riga.intestazione { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.sq-riga:not(.intestazione):hover { background: var(--card-alta); }
+.sq-riga.fuori { opacity: 0.55; }
+.sq-nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.sq-squadra { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sq-prezzo, .sq-tit, .sq-fm, .sq-mv { text-align: right; font-variant-numeric: tabular-nums; }
+.sq-tit.basso { color: var(--oro); }
+.sq-chip { display: flex; gap: 4px; flex-wrap: wrap; }
+.sq-modifica { background: transparent; color: var(--muted); padding: 2px 6px; font-weight: 700; }
+.sq-modifica:hover { color: var(--fg); background: var(--card-alta); }
+
+.sq-modifica-pannello {
+  position: sticky; bottom: 0; margin-top: 14px; padding: 12px 14px;
+  background: var(--card-alta); border: 1px solid var(--linea-forte); border-radius: var(--r);
+}
+.sq-modifica-pannello h4 { font-size: 14px; margin-bottom: 8px; }
+.sq-candidati { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.sq-candidati li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .sq-riga { grid-template-columns: 26px minmax(0, 1fr) 42px 52px 52px; }
+  .sq-riga .sq-squadra, .sq-riga .sq-mv, .sq-riga .sq-chip { display: none; }
+}

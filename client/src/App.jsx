@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getConfig, getStato } from './api.js';
+import Squadra from './Squadra.jsx';
 import Analisi from './Analisi.jsx';
 import Listone from './Listone.jsx';
 import Situazione from './Situazione.jsx';
@@ -11,12 +12,14 @@ import { FILTRI_VUOTI as FILTRI_ANALISI } from './analisiFiltri.js';
 /** Routing sull'hash invece di una libreria: cinque schermate non giustificano
  *  una dipendenza, e l'hash sopravvive al refresh senza toccare il server.
  *  #/giocatore/123 e' l'unica rotta con un parametro. */
-const PAGINE = ['analisi', 'listone', 'situazione', 'asta', 'regolamento'];
+/** 'squadra' e la prima e l'apertura: l'asta e finita, e quello che si apre
+ *  ogni settimana e la propria rosa, non il listone. */
+const PAGINE = ['squadra', 'analisi', 'listone', 'situazione', 'asta', 'regolamento'];
 const rottaDaHash = () => {
   const h = window.location.hash.replace('#/', '');
   const m = /^giocatore\/(\d+)$/.exec(h);
   if (m) return { pagina: 'giocatore', id: Number(m[1]) };
-  return { pagina: PAGINE.includes(h) ? h : 'analisi', id: null };
+  return { pagina: PAGINE.includes(h) ? h : 'squadra', id: null };
 };
 
 /** I filtri di ogni pagina stanno qui e non dentro le pagine. Aprire la scheda
@@ -40,6 +43,7 @@ const FILTRI_INIZIALI = {
 };
 
 const NOMI = {
+  squadra: 'La mia squadra',
   analisi: 'Analisi',
   listone: 'Listone',
   situazione: 'Situazione',
@@ -55,7 +59,7 @@ export default function App() {
   const [filtri, setFiltri] = useState(FILTRI_INIZIALI);
   /** Da dove si e' arrivati alla scheda: il pulsante indietro ci riporta, e la
    *  pagina ritrova i suoi filtri perche' vivono qui sopra. */
-  const [provenienza, setProvenienza] = useState('analisi');
+  const [provenienza, setProvenienza] = useState('squadra');
   /** Il messaggio dopo un'azione sta qui perche' le azioni ora partono da
    *  quattro pagine diverse: un toast per pagina avrebbe voluto dire quattro
    *  copie della stessa cosa, e due visibili insieme quando si cambia vista. */
@@ -159,6 +163,9 @@ export default function App() {
       )}
       {pagina === 'asta' && (
         <Asta stato={stato} onStato={setStato} config={config} onRicarica={ricarica} onApri={apri} />
+      )}
+      {pagina === 'squadra' && (
+        <Squadra stato={stato} onStato={setStato} onApri={apri} onAvviso={avvisa} />
       )}
       {pagina === 'listone' && <Listone stato={stato} {...perPagina('listone')} />}
       {pagina === 'situazione' && <Situazione stato={stato} {...perPagina('situazione')} />}

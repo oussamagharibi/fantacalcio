@@ -1,0 +1,30 @@
+[
+  { "nome": "Vicario", "prezzo": 43 },
+  { "nome": "Grabara", "prezzo": 3 },
+  { "nome": "Pinsoglio", "prezzo": 1 },
+
+  { "nome": "Akanji", "prezzo": 20 },
+  { "nome": "Chalobah T.", "prezzo": 17 },
+  { "nome": "Kalulu", "prezzo": 22 },
+  { "nome": "Comuzzo", "prezzo": 9 },
+  { "nome": "Stones", "prezzo": 12 },
+  { "nome": "Dodo", "prezzo": 7 },
+  { "nome": "Koulierakis", "prezzo": 2 },
+  { "nome": "Ziolkowski", "prezzo": 1 },
+
+  { "nome": "Da Cunha", "prezzo": 32 },
+  { "nome": "Ederson D.S.", "prezzo": 17 },
+  { "nome": "Samardzic", "prezzo": 19 },
+  { "nome": "Zambo Anguissa", "prezzo": 16 },
+  { "nome": "Rodriguez Je.", "prezzo": 6 },
+  { "nome": "Perrone", "prezzo": 3 },
+  { "nome": "Thorstvedt", "prezzo": 3 },
+  { "nome": "Kone I.", "prezzo": 1 },
+
+  { "nome": "Kolo Muani", "prezzo": 106 },
+  { "nome": "Dovbyk", "prezzo": 23 },
+  { "nome": "Krstovic", "prezzo": 47 },
+  { "nome": "Adams C.", "prezzo": 11 },
+  { "nome": "Raimondo", "prezzo": 40 },
+  { "nome": "Yeboah J.", "prezzo": 20 }
+]

@@ -19,6 +19,7 @@ import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
 import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente, MOTIVI } from './lib/consulente.js';
 import { registra, consumo } from './lib/consumo.js';
+import { metti, togli } from './lib/rosa.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
@@ -332,6 +333,19 @@ app.post('/api/consulente', async (req, reply) => {
 /** Il conto delle chiamate a Claude. `da` di default e' l'accensione del
  *  server: e' quello che il pannello dell'asta chiama "questa sessione". */
 app.get('/api/consumo', (req) => consumo(req.query?.da ?? DA_QUANDO));
+
+/** La rosa a mano: svincoli e scambi a stagione cominciata.
+ *  Le azioni d'asta hanno altri controlli - un giocatore "uscito" non si puo'
+ *  comprare, l'annulla toglie l'ultima in ordine di tempo - che servono
+ *  durante l'asta e sono d'intralcio dopo. */
+app.post('/api/rosa', (req, reply) => {
+  const playerId = Number(req.body?.playerId);
+  if (!Number.isInteger(playerId)) return reply.code(400).send({ error: 'playerId mancante o non intero' });
+  const r = req.body?.rimuovi === true ? togli(playerId) : metti(playerId, req.body?.prezzo);
+  if (!r.ok) return reply.code(400).send({ error: r.errore });
+  req.log.info({ azione: r.azione, nome: r.nome, prezzo: r.prezzo }, 'rosa modificata a mano');
+  return { ...r, ...stato() };
+});
 
 app.post('/api/reset', (req) => {
   const bak = backup('pre-reset');
