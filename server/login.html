@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>FantaNexi</title>
+    <style>
+      /* Pagina a se': niente bundle, niente CSS dell'applicazione. Chi non e'
+         entrato non deve nemmeno scaricare il resto del sito. */
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; display: grid; place-items: center;
+        background: #040b1a; color: #eef2fa;
+        font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      form {
+        background: #06132e; border: 1px solid rgba(27, 79, 216, 0.2); border-radius: 10px;
+        padding: 26px 24px; width: min(340px, calc(100vw - 32px));
+        display: flex; flex-direction: column; gap: 12px;
+      }
+      .marchio {
+        align-self: flex-start; background: #1b4fd8; color: #fff;
+        padding: 5px 11px; border-radius: 7px; font-weight: 700; letter-spacing: 0.2px;
+      }
+      label { font-size: 12px; color: #93a2bf; }
+      input {
+        background: rgba(4, 11, 26, 0.72); color: #eef2fa; border: 1px solid rgba(27, 79, 216, 0.2);
+        border-radius: 8px; padding: 11px 12px; font: inherit; width: 100%;
+      }
+      input:focus { outline: 2px solid #4da6ff; outline-offset: 0; }
+      button {
+        background: #1b4fd8; color: #fff; border: 0; border-radius: 8px;
+        padding: 11px 18px; font: inherit; font-weight: 700; cursor: pointer;
+      }
+      button:hover { filter: brightness(1.1); }
+      button[disabled] { opacity: 0.6; cursor: default; }
+      .err { color: #ff6b5e; font-size: 13px; min-height: 18px; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <form id="f" autocomplete="on">
+      <span class="marchio">FantaNexi</span>
+      <label for="p">Password</label>
+      <input id="p" name="password" type="password" autocomplete="current-password" autofocus required />
+      <button id="b" type="submit">Entra</button>
+      <p class="err" id="e" role="alert"></p>
+    </form>
+    <script>
+      const f = document.getElementById('f');
+      const p = document.getElementById('p');
+      const b = document.getElementById('b');
+      const e = document.getElementById('e');
+      f.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        b.disabled = true;
+        e.textContent = '';
+        try {
+          const r = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ password: p.value }),
+          });
+          if (r.ok) {
+            // Ricaricare e non navigare: cosi' si torna esattamente dove si
+            // stava andando, con il cookie appena messo.
+            window.location.reload();
+            return;
+          }
+          const b2 = await r.json().catch(() => ({}));
+          e.textContent = b2.error || 'Password sbagliata.';
+          p.select();
+        } catch (err) {
+          e.textContent = 'Il server non risponde.';
+        } finally {
+          b.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

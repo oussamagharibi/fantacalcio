@@ -171,6 +171,11 @@ export default function App() {
       {pagina === 'situazione' && <Situazione stato={stato} {...perPagina('situazione')} />}
       {pagina === 'analisi' && <Analisi stato={stato} onRicarica={ricarica} {...perPagina('analisi')} />}
       {pagina === 'regolamento' && <Regolamento stato={stato} />}
+      {/* Sito senza password: si dice in pagina, non solo nel log del
+          server. Un avviso che nessuno vede non e un avviso. */}
+      {config.protezione && !config.protezione.attiva && (
+        <p className="avviso banner aperto">{config.protezione.avviso}</p>
+      )}
       {toast && <div className={`toast${toast.tipo === 'ko' ? ' ko' : ''}`}>{toast.testo}</div>}
     </>
   );

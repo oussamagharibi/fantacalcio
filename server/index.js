@@ -20,6 +20,19 @@ import { avviaBatch, statoBatch } from './lib/batch.js';
 import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente, MOTIVI } from './lib/consulente.js';
 import { registra, consumo } from './lib/consumo.js';
 import { metti, togli } from './lib/rosa.js';
+import {
+  APERTE,
+  AVVISO_APERTO,
+  NOME_COOKIE,
+  cookieScaduto,
+  creaSessione,
+  intestazioneCookie,
+  leggiCookie,
+  passwordGiusta,
+  protetto,
+  sessioneValida,
+  suHttps,
+} from './lib/accesso.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** 0.0.0.0 e non 127.0.0.1: dentro un container Railway raggiunge il servizio
@@ -31,6 +44,8 @@ const HOST = process.env.HOST ?? '0.0.0.0';
  *  parziale, non il totale - ma e un momento che si puo nominare, e a schermo
  *  c e scritto quale. */
 const DA_QUANDO = new Date().toISOString();
+
+const LOGIN_HTML = fs.readFileSync(path.join(ROOT, 'server', 'login.html'), 'utf8');
 
 const DIST = path.join(ROOT, 'client', 'dist');
 const CLIENT_BUILDATO = fs.existsSync(path.join(DIST, 'index.html'));
@@ -55,6 +70,49 @@ app.register(fastifyMultipart, {
   limits: { fileSize: LIMITE_UPLOAD_MB * 1024 * 1024, files: MAX_FILE },
 });
 
+/** La porta d'ingresso.
+ *
+ *  Chi non ha la sessione non vede NIENTE: non le API, e nemmeno il bundle del
+ *  client. Una schermata di login dentro l'applicazione avrebbe comunque
+ *  spedito tutto il sito a chiunque passasse dall'indirizzo, e "chiedere la
+ *  password prima di mostrare qualsiasi cosa" vuol dire prima di quello.
+ *
+ *  Senza SITE_PASSWORD non blocca niente: il sito resta aperto e lo dichiara.
+ *  Rendersi inaccessibili da soli per una variabile dimenticata sarebbe un
+ *  guasto peggiore di quello che si vuole evitare. */
+app.addHook('onRequest', (req, reply, done) => {
+  if (!protetto()) return done();
+  const percorso = req.url.split('?')[0];
+  if (APERTE.has(percorso)) return done();
+  if (sessioneValida(leggiCookie(req.headers.cookie))) return done();
+
+  if (percorso.startsWith('/api/')) {
+    reply.code(401).send({ error: 'sessione assente o scaduta', motivo: 'accesso' });
+    return;
+  }
+  // Tutto il resto - la pagina, il bundle, le immagini - diventa il login.
+  reply.code(200).type('text/html; charset=utf-8').send(LOGIN_HTML);
+});
+
+/** L'unica rotta che si puo' chiamare senza sessione, insieme a health.
+ *  Non dice mai se la password era "quasi giusta": un solo messaggio per
+ *  qualunque motivo di rifiuto. */
+app.post('/api/login', (req, reply) => {
+  if (!protetto()) return { ok: true, protetto: false, avviso: AVVISO_APERTO };
+  if (!passwordGiusta(req.body?.password)) {
+    req.log.warn({ ip: req.ip }, 'login rifiutato');
+    return reply.code(401).send({ error: 'Password sbagliata.' });
+  }
+  reply.header('set-cookie', intestazioneCookie(creaSessione(), { sicuro: suHttps(req) }));
+  req.log.info('login riuscito');
+  return { ok: true };
+});
+
+app.post('/api/logout', (req, reply) => {
+  reply.header('set-cookie', cookieScaduto({ sicuro: suHttps(req) }));
+  return { ok: true };
+});
+
 /** Il routing del client e' lato browser: ogni path non-API deve restituire
  *  index.html, altrimenti un refresh su una schermata interna darebbe 404. */
 app.setNotFoundHandler((req, reply) => {
@@ -65,12 +123,22 @@ app.setNotFoundHandler((req, reply) => {
   return reply.sendFile('index.html');
 });
 
+/** Aperta senza sessione perche' Railway la interroga per sapere se il servizio
+ *  e' vivo: protetta, il deploy risulterebbe morto e verrebbe riavviato in
+ *  continuazione. Percio' quando c'e' una password non racconta niente: dice
+ *  solo che il processo risponde. */
 app.get('/api/health', () => {
+  if (protetto()) return { ok: true };
   const s = statoConfig();
   return { ok: true, configurata: s.configurata, squadre: s.squadre };
 });
 
-app.get('/api/config', () => statoConfig());
+app.get('/api/config', () => ({
+  ...statoConfig(),
+  // Serve al client per mostrare l'avviso quando il sito e' aperto: un banner
+  // in pagina lo si vede, una riga nel log del server no.
+  protezione: { attiva: protetto(), avviso: protetto() ? null : AVVISO_APERTO },
+}));
 
 app.post('/api/config', (req, reply) => {
   if (bloccata())
