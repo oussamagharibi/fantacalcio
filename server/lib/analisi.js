@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { TARIFFE } from './consumo.js';
 
-/** Il modello di tutte le chiamate dell'applicazione: le note, il consulente
- *  in asta, le gerarchie. Sta scritto qui una volta sola. */
+/** Il modello di tutte le chiamate dell'applicazione: le note del batch e le
+ *  gerarchie. Sta scritto qui una volta sola. */
 export const MODELLO = 'claude-sonnet-5';
 
 /** Il prezzo del modello in uso, preso dal tariffario che sta in consumo.js.

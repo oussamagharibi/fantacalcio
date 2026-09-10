@@ -39,7 +39,11 @@ export function costoDi(modello, uso) {
   return (input / 1e6) * t.input + (output / 1e6) * t.output;
 }
 
-export const TIPI = ['consulente', 'note'];
+/** I tipi che l applicazione produce oggi. Il consulente in asta non c e
+ *  piu: le sue righe, se ce ne sono in archivio, si vedono lo stesso perche
+ *  perTipo unisce questi ai tipi trovati davvero nella tabella. Un tipo
+ *  morto non deve comparire a zero, ma i soldi spesi non si cancellano. */
+export const TIPI = ['note'];
 
 /** Registra una chiamata. Torna quello che ha scritto, costo compreso, cosi'
  *  chi ha chiesto puo' mostrarlo senza rileggere. */
@@ -78,7 +82,10 @@ export function consumo(da = null) {
   return {
     // Un tipo senza righe compare comunque a zero: "nessuna chiamata" e'
     // un'informazione, una riga che manca sembra un dato non caricato.
-    perTipo: TIPI.map((t) => ({ ...vuoto(t), ...(perTipo.find((x) => x.tipo === t) ?? {}) })),
+    perTipo: [...new Set([...TIPI, ...perTipo.map((x) => x.tipo)])].map((t) => ({
+      ...vuoto(t),
+      ...(perTipo.find((x) => x.tipo === t) ?? {}),
+    })),
     totale: { ...vuoto(), ...totale },
     sessione: TIPI.map((t) => ({ ...vuoto(t), ...(sessione.find((x) => x.tipo === t) ?? {}) })),
     da,

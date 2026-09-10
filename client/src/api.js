@@ -61,10 +61,6 @@ export const postReset = () => invia('/api/reset', {});
 export const postAggiorna = () => invia('/api/news/genera', { conferma: true });
 export const getStatoAggiornamento = () => json('/api/news/stato');
 
-/** Il consulente d asta. Il contesto lo compone il browser: qui si spedisce
- *  e basta. 503 se la chiave non c e, 502 se il modello non ha risposto. */
-export const postConsulente = (contesto) => invia('/api/consulente', { contesto });
-
 /** Il conto delle chiamate a Claude: per tipo, in totale, e da quando il
  *  server e acceso. */
 export const getConsumo = () => json('/api/consumo');

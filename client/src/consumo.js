@@ -5,7 +5,10 @@
  *  in silenzio: un costo che non c'e' non e' zero. */
 
 export const ETICHETTE_TIPO = {
-  consulente: 'Consulente in asta',
+  // Il consulente in asta non c'e' piu'. L'etichetta resta perche' in
+  // archivio possono esserci ancora le sue righe, e una riga senza nome
+  // diventa un costo di cui non si sa piu' la provenienza.
+  consulente: 'Consulente in asta (rimosso)',
   note: 'Note AI',
 };
 

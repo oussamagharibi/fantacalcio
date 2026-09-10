@@ -17,7 +17,6 @@ import {
 import { salvaEImportaStats } from './lib/stats.js';
 import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
-import { chiedi, chiaveMancante, nuovoClient as nuovoConsulente, MOTIVI } from './lib/consulente.js';
 import { registra, consumo } from './lib/consumo.js';
 import { metti, togli } from './lib/rosa.js';
 import {
@@ -361,42 +360,6 @@ app.post('/api/news/genera', (req, reply) => {
 });
 
 app.get('/api/news/stato', () => statoBatch());
-
-/** Il consulente d'asta. Si preme a mano, una domanda alla volta.
- *
- *  Il contesto lo compone il browser da quello che ha gia' in memoria: qui non
- *  si rilegge niente dall'archivio, perche' questa chiamata arriva nel mezzo di
- *  un rilancio e ogni millisecondo speso e' un millisecondo tolto a chi sta
- *  battendo. Le istruzioni invece stanno nel server e non arrivano dalla rete.
- *
- *  Se qualcosa va storto si risponde con l'errore e basta: l'asta prosegue
- *  senza consulente, che e' come e' andata fino a ieri. */
-app.post('/api/consulente', async (req, reply) => {
-  if (chiaveMancante())
-    return reply.code(503).send({
-      error: "ANTHROPIC_API_KEY non impostata sul server",
-      motivo: MOTIVI.chiave,
-    });
-  const contesto = req.body?.contesto;
-  if (!contesto || typeof contesto !== 'object')
-    return reply.code(400).send({ error: 'contesto mancante', motivo: MOTIVI.richiesta });
-  const r = await chiedi(nuovoConsulente(), contesto);
-  if (!r.ok) {
-    // Il motivo vero nel log, non "non ha risposto": un timeout e una chiave
-    // scaduta si guardano in due posti diversi, e senza il motivo si perde
-    // tempo a cercare quello sbagliato.
-    req.log.warn(
-      { motivo: r.motivo, errore: r.errore, tecnico: r.tecnico, durataMs: r.durata },
-      'consulente: nessuna risposta'
-    );
-    return reply.code(502).send({ error: r.errore, motivo: r.motivo });
-  }
-  // Il costo lo calcola e lo scrive consumo.js: un tariffario solo, e la riga
-  // in archivio prima ancora di mandare la risposta a chi l'ha chiesta.
-  const speso = registra({ tipo: 'consulente', modello: r.modello, uso: r.uso });
-  req.log.info({ durataMs: r.durata, ...r.uso, costo: speso.costo, troncata: r.troncata }, 'consulente: risposta');
-  return { ...r, costo: speso.costo, consumo: consumo(DA_QUANDO) };
-});
 
 /** Il conto delle chiamate a Claude. `da` di default e' l'accensione del
  *  server: e' quello che il pannello dell'asta chiama "questa sessione". */

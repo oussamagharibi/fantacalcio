@@ -5,7 +5,7 @@ import { costo, ETICHETTE_TIPO, somma, token } from './consumo.js';
 /** Quanto e' costato chiedere a Claude, in tutto.
  *
  *  Sta nella sezione Dati accanto a chi la spesa la produce: il pulsante
- *  "Aggiorna tutto" e, attraverso l'asta, il consulente. Un conto che si vede
+ *  "Aggiorna tutto". Un conto che si vede
  *  solo a fattura arrivata non serve a decidere se premere di nuovo. */
 export default function Consumo({ ricarica }) {
   const [dati, setDati] = useState(null);
