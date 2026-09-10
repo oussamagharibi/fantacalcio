@@ -217,6 +217,15 @@ export function gerarchie() {
     }));
 }
 
+/** Il turno che si sta per giocare. Vuoto finche nessuno ha aggiornato le
+ *  fonti: la pagina omette la sezione invece di inventarsi un calendario. */
+export const partite = () =>
+  getDb()
+    .prepare(
+      'SELECT id, giornata, stagione, casa, ospite, fonte, data FROM partite ORDER BY id'
+    )
+    .all();
+
 /** statsVuote dice all'interfaccia di avvisare che manca lo storico fanta:
  *  Wikipedia da' presenze e gol, la fantamedia solo gli Excel di fantacalcio.it. */
 export const stato = () => ({
@@ -226,6 +235,7 @@ export const stato = () => ({
   restanti: restanti(),
   ballottaggi: ballottaggi(),
   gerarchie: gerarchie(),
+  partite: partite(),
   statsVuote: getDb().prepare('SELECT count(*) AS n FROM stats').get().n === 0,
 });
 

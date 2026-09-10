@@ -164,14 +164,14 @@ export async function aggiorna({ stato, conNote = true, soloRaccolta = false, lo
       }
       r.righe = e.abbinate;
       r.dettaglio = `${e.abbinate} giocatori abbinati su ${e.lette} letti`;
-      // Il secondo raccolto della stessa pagina, se la fonte ne ha uno: va
-      // detto a schermo, altrimenti si raccoglie in silenzio e nessuno sa se
-      // e' arrivato.
-      if (e.anche) {
-        r.dettaglio += e.anche.errore
-          ? ` · ${e.anche.nome}: ${leggibile(e.anche.errore)}`
-          : ` · ${e.anche.scritte} ${e.anche.nome}${e.anche.scartate?.length ? ` (${e.anche.scartate.length} scartati)` : ''}`;
-        r.righe += e.anche.scritte ?? 0;
+      // Gli altri raccolti della stessa pagina, quando la fonte ne ha: vanno
+      // detti a schermo, altrimenti si raccolgono in silenzio e nessuno sa se
+      // sono arrivati.
+      for (const x of e.anche ?? []) {
+        r.dettaglio += x.errore
+          ? ` · ${x.nome}: ${leggibile(x.errore)}`
+          : ` · ${x.scritte} ${x.nome}${x.scartate?.length ? ` (${x.scartate.length} scartati)` : ''}`;
+        r.righe += x.scritte ?? 0;
       }
       dillo(`${nome.padEnd(26)} voci lette: ${String(e.lette).padStart(4)} | abbinate: ${String(e.abbinate).padStart(4)} | non abbinate: ${String(e.nonAbbinati.length).padStart(3)}`);
       for (const n of e.nonAbbinati) dillo(`    non abbinato: "${n.nome}"${n.squadra ? ` (${n.squadra})` : ''} - ${n.motivo}`);

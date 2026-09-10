@@ -86,7 +86,52 @@ export function spesaPerReparto(r) {
   };
 }
 
-// ------------------------------------------------------------------ allarmi
+// ------------------------------------------------------- prossimo turno
+
+/** Chi dei miei gioca il prossimo turno, contro chi, in casa o fuori.
+ *
+ *  Il calendario arriva dalla pagina delle probabili formazioni: se nessuno ha
+ *  ancora aggiornato le fonti, partite e vuota e la pagina omette la sezione.
+ *  Un turno inventato sarebbe peggio di nessun turno: si schiera guardandolo. */
+export function prossimoTurno(r, partite) {
+  if (!partite?.length) return null;
+  const perSquadra = new Map();
+  for (const p of partite) {
+    perSquadra.set(p.casa, { avversario: p.ospite, casa: true, partita: p });
+    perSquadra.set(p.ospite, { avversario: p.casa, casa: false, partita: p });
+  }
+  const righe = [];
+  const senzaPartita = [];
+  for (const g of r) {
+    const c = perSquadra.get(g.squadra);
+    if (!c) {
+      // La sua squadra non gioca in questo turno: succede col turno infrasettimanale
+      // spezzato, e va detto invece di lasciarlo sparire dalla lista.
+      senzaPartita.push(g);
+      continue;
+    }
+    righe.push({ ...g, avversario: c.avversario, casa: c.casa, partita: c.partita });
+  }
+  const giornata = partite[0]?.giornata ?? null;
+  return {
+    giornata,
+    stagione: partite[0]?.stagione ?? null,
+    // Raggruppati per partita: se il Genoa gioca male, i miei tre del Genoa
+    // vanno male insieme, e vederli insieme lo ricorda.
+    perPartita: partite
+      .map((p) => ({
+        partita: p,
+        miei: righe.filter((g) => g.partita.id === p.id).sort(megliore),
+      }))
+      .filter((x) => x.miei.length)
+      .sort((a, b) => b.miei.length - a.miei.length),
+    quanti: righe.length,
+    disponibili: righe.filter(disponibile).length,
+    senzaPartita,
+  };
+}
+
+// ---------------------------------------------------------------- allarmi
 
 export const TITOLARITA_BASSA = 50;
 

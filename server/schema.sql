@@ -157,6 +157,22 @@ CREATE TABLE IF NOT EXISTS consumo (
   created_at TEXT
 );
 
+-- Il turno che si sta per giocare, dalla pagina delle probabili formazioni.
+-- Chi gioca in casa lo dice lo slug del link al calendario (casa-ospite): e
+-- l unico posto della pagina dove sta scritto senza ambiguita.
+-- Fotografia, non storico: fantacalcio.it mostra una giornata alla volta, e
+-- tenere le vecchie vorrebbe dire chiamare "prossimo turno" una partita gia
+-- giocata.
+CREATE TABLE IF NOT EXISTS partite (
+  id INTEGER PRIMARY KEY,
+  giornata INTEGER,
+  stagione TEXT,
+  casa TEXT,
+  ospite TEXT,
+  fonte TEXT NOT NULL DEFAULT '',
+  data TEXT
+);
+
 CREATE TABLE IF NOT EXISTS articles (
   url TEXT PRIMARY KEY,
   titolo TEXT,

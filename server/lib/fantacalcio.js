@@ -198,6 +198,69 @@ export function salvaBallottaggi(coppie, fonte, data) {
   });
 }
 
+// ------------------------------------------------------- calendario
+
+/** Il turno che si sta per giocare, dalla stessa pagina delle probabili.
+ *
+ *  Ogni partita porta il suo link al calendario:
+ *    /serie-a/calendario/3/2026-27/genoa-como/17979
+ *  cioe' giornata, stagione, casa-ospite, id. Lo slug e' l'unico posto dove
+ *  sta scritto chi gioca in casa, e lo dice senza ambiguita'.
+ *
+ *  Lo slug si spezza confrontandolo con le squadre vere del listone, non
+ *  tagliando al primo trattino: una squadra col trattino nel nome romperebbe
+ *  il taglio, e una partita attribuita alla squadra sbagliata e' peggio di una
+ *  partita non letta. Se non si risolve, quella riga si salta. */
+const SCHEMA_PARTITA = /\/serie-a\/calendario\/(\d+)\/([\d-]+)\/([a-z0-9-]+)\/(\d+)/gi;
+
+export function leggiPartite(html, squadre = []) {
+  const perSlug = new Map(squadre.map((s) => [normalizzaBase(s).replace(/[^a-z0-9]/g, '-'), s]));
+  const viste = new Set();
+  const partite = [];
+  for (const m of String(html ?? '').matchAll(SCHEMA_PARTITA)) {
+    const [, giornata, stagione, slug, id] = m;
+    if (viste.has(id)) continue;
+    viste.add(id);
+    // Si prova ogni punto di taglio: vince quello in cui tutte e due le meta
+    // sono squadre vere.
+    let casa = null;
+    let ospite = null;
+    for (let i = slug.indexOf('-'); i > 0; i = slug.indexOf('-', i + 1)) {
+      const a = perSlug.get(slug.slice(0, i));
+      const b = perSlug.get(slug.slice(i + 1));
+      if (a && b) {
+        casa = a;
+        ospite = b;
+        break;
+      }
+    }
+    if (!casa || !ospite) continue;
+    partite.push({ id: Number(id), giornata: Number(giornata), stagione, casa, ospite });
+  }
+  return partite;
+}
+
+/** Fotografia del turno in corso: a ogni giro si riscrive tutto. Il calendario
+ *  di fantacalcio.it mostra una giornata alla volta, e tenere le vecchie
+ *  vorrebbe dire mostrare come "prossimo turno" una partita gia' giocata. */
+export function salvaPartite(partite, fonte, data) {
+  return tx((d) => {
+    const rimosse = d.prepare('DELETE FROM partite WHERE fonte = ?').run(fonte).changes;
+    const ins = d.prepare(
+      `INSERT INTO partite (id, giornata, stagione, casa, ospite, fonte, data)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET giornata = excluded.giornata, stagione = excluded.stagione,
+         casa = excluded.casa, ospite = excluded.ospite, fonte = excluded.fonte, data = excluded.data`
+    );
+    let scritte = 0;
+    for (const p of partite) {
+      ins.run(p.id, p.giornata, p.stagione, p.casa, p.ospite, fonte, data);
+      scritte++;
+    }
+    return { rimosse, scritte };
+  });
+}
+
 export const PAGINE = [
   {
     fonte: 'Fantacalcio infortunati',
@@ -216,10 +279,24 @@ export const PAGINE = [
     tipo: 'titolarita',
     url: 'https://www.fantacalcio.it/probabili-formazioni-serie-a',
     leggi: leggiProbabili,
-    /** I ballottaggi vivono nella stessa pagina: si leggono dallo stesso HTML
-     *  invece di scaricarla una seconda volta. Vanno in una tabella loro, non
-     *  in segnali, perche' riguardano due giocatori e non uno. */
-    anche: { nome: 'ballottaggi', leggi: leggiBallottaggi, abbina: abbinaBallottaggi, salva: salvaBallottaggi },
+    /** Due raccolti in piu' dalla stessa pagina, letti dallo stesso HTML
+     *  invece di scaricarla due volte. Non finiscono in segnali: i
+     *  ballottaggi riguardano due giocatori, il calendario nessuno. */
+    anche: [
+      { nome: 'ballottaggi', leggi: leggiBallottaggi, abbina: abbinaBallottaggi, salva: salvaBallottaggi },
+      {
+        nome: 'partite',
+        // Le squadre vere del listone: servono a spezzare lo slug senza
+        // indovinare dove finisce un nome e comincia l'altro.
+        leggi: (html) =>
+          leggiPartite(
+            html,
+            getDb().prepare('SELECT DISTINCT squadra FROM players WHERE assente_dal IS NULL').all().map((r) => r.squadra)
+          ),
+        abbina: (partite) => ({ abbinate: partite, scartate: [] }),
+        salva: salvaPartite,
+      },
+    ],
   },
 ];
 
@@ -334,19 +411,20 @@ export async function raccogliSegnali(fontiAttive, log = () => {}) {
       esito.abbinate = scritti;
       esito.rimossi = rimossi;
 
-      // Il secondo raccolto della stessa pagina, quando c'e'. Ha il suo
-      // try: se i ballottaggi cambiano markup, la titolarita' - che e' gia'
-      // stata salvata qui sopra - non deve risultare fallita per colpa loro.
-      if (p.anche) {
+      // Gli altri raccolti della stessa pagina, quando ce ne sono. Ognuno ha
+      // il suo try: se cambia il markup dei ballottaggi, il calendario - e la
+      // titolarita' gia' salvata qui sopra - non devono risultare falliti per
+      // colpa loro.
+      for (const extra of p.anche ?? []) {
         try {
-          const lette = p.anche.leggi(risposta.testo);
-          const { abbinate: coppie, scartate } = p.anche.abbina(lette);
-          const { scritte } = p.anche.salva(coppie, p.fonte, adesso);
-          esito.anche = { nome: p.anche.nome, lette: lette.length, scritte, scartate };
-          for (const s of scartate) log(`${p.fonte}: ${p.anche.nome} scartato - ${s.motivo}`);
+          const lette = extra.leggi(risposta.testo);
+          const { abbinate, scartate } = extra.abbina(lette);
+          const { scritte } = extra.salva(abbinate, p.fonte, adesso);
+          (esito.anche ??= []).push({ nome: extra.nome, lette: lette.length, scritte, scartate });
+          for (const s of scartate) log(`${p.fonte}: ${extra.nome} scartato - ${s.motivo}`);
         } catch (e) {
-          esito.anche = { nome: p.anche.nome, errore: e.message };
-          log(`${p.fonte}: ${p.anche.nome} non letti (${e.message}) - il resto della pagina e' salvo`);
+          (esito.anche ??= []).push({ nome: extra.nome, errore: e.message });
+          log(`${p.fonte}: ${extra.nome} non letti (${e.message}) - il resto della pagina e' salvo`);
         }
       }
     } catch (e) {

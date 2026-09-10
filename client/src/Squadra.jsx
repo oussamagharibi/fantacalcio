@@ -11,6 +11,7 @@ import {
   formazioni,
   panchina,
   perReparto,
+  prossimoTurno,
   rosa as costruisciRosa,
   spesaPerReparto,
   SOSTITUZIONI,
@@ -286,6 +287,7 @@ export default function Squadra({ stato, onStato, onApri, onAvviso }) {
   const avvisi = useMemo(() => allarmi(r), [r]);
   const f = useMemo(() => formazioni(r), [r]);
   const bench = useMemo(() => (f.consigliato ? panchina(r, f.consigliato.undici) : []), [r, f]);
+  const turno = useMemo(() => prossimoTurno(r, stato.partite), [r, stato.partite]);
 
   if (!r.length)
     return (
@@ -315,6 +317,56 @@ export default function Squadra({ stato, onStato, onApri, onAvviso }) {
           {stato.rosa.budget - spesa.totale !== 0 && <> · {stato.rosa.budget - spesa.totale} non spesi</>}
         </span>
       </header>
+
+      {/* Il prossimo turno in cima a tutto: e la prima domanda della
+          settimana. La sezione non c e se il calendario non c e - lo si
+          aggiorna dalle fonti, non lo si inventa. */}
+      {turno && (
+        <section className="pannello">
+          <div className="sq-modulo-testa">
+            <h3>Prossimo turno</h3>
+            <span className="muted">
+              giornata {turno.giornata} · {turno.disponibili} dei tuoi {turno.quanti} in campo
+              {turno.quanti !== turno.disponibili && (
+                <> ({turno.quanti - turno.disponibili} indisponibil{turno.quanti - turno.disponibili === 1 ? 'e' : 'i'})</>
+              )}
+            </span>
+          </div>
+          <ul className="sq-turno">
+            {turno.perPartita.map(({ partita, miei }) => (
+              <li key={partita.id}>
+                <span className="sq-partita">
+                  <strong>{partita.casa}</strong>
+                  <span className="muted">-</span>
+                  <strong>{partita.ospite}</strong>
+                </span>
+                <span className="sq-miei">
+                  {miei.map((g) => (
+                    <button
+                      key={g.id}
+                      className={`sq-in-campo${disponibile(g) ? '' : ' fuori'}`}
+                      data-ruolo={g.ruolo}
+                      onClick={() => onApri?.(g.id)}
+                      title={`${g.casa ? 'in casa contro' : 'in trasferta contro'} ${g.avversario}`}
+                    >
+                      {g.nome}
+                      <span className="muted">{g.casa ? ' (C)' : ' (T)'}</span>
+                    </button>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {turno.senzaPartita.length > 0 && (
+            <p className="avviso">
+              Non giocano in questa giornata: {turno.senzaPartita.map((g) => g.nome).join(', ')}.
+            </p>
+          )}
+          <p className="muted sq-fonte-turno">
+            (C) in casa, (T) in trasferta · dal calendario delle probabili formazioni
+          </p>
+        </section>
+      )}
 
       {/* Gli allarmi in cima: sono la ragione per cui si apre questa pagina. */}
       <section className="pannello">
