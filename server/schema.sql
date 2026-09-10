@@ -207,3 +207,24 @@ CREATE TABLE IF NOT EXISTS xg (
   aggiornato_il TEXT,
   PRIMARY KEY (player_id, stagione)
 );
+
+-- Le analisi delle schermate, una riga per chiamata.
+-- voci e' il JSON di quello che il modello ha estratto: sta qui e non in
+-- segnali di proposito. Un'estrazione da foto e' meno affidabile di un parser
+-- che legge il markup, e mescolarla ai segnali veri vorrebbe dire non poterle
+-- piu' distinguere. Diventa un segnale solo quando qualcuno lo conferma, e
+-- allora la riga in segnali porta fonte 'Analisi da foto'.
+-- Le immagini restano su disco in data/foto/<cartella>: qui c'e' solo il nome
+-- della cartella, cosi' l'archivio si puo' riaprire e riguardare.
+CREATE TABLE IF NOT EXISTS analisi_foto (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT,
+  cartella TEXT,
+  immagini INTEGER,
+  riassunto TEXT,
+  voci TEXT,
+  modello TEXT,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  costo REAL
+);

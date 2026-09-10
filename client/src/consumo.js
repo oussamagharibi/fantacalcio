@@ -10,6 +10,7 @@ export const ETICHETTE_TIPO = {
   // diventa un costo di cui non si sa piu' la provenienza.
   consulente: 'Consulente in asta (rimosso)',
   note: 'Note AI',
+  foto: 'Analisi da foto',
 };
 
 export const token = (n) => Number(n ?? 0).toLocaleString('it-IT');

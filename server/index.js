@@ -19,6 +19,23 @@ import { salvaEImportaXg, ErroreXg } from './lib/understat.js';
 import { avviaBatch, statoBatch } from './lib/batch.js';
 import { registra, consumo } from './lib/consumo.js';
 import { metti, togli } from './lib/rosa.js';
+import { MODELLO } from './lib/analisi.js';
+import { mimeDaEstensione } from './lib/immagini.js';
+import {
+  MAX_FOTO,
+  analisi as analisiFoto,
+  analizza as analizzaFoto,
+  annullaConferma as annullaConfermaFoto,
+  chiaveMancante as chiaveFotoMancante,
+  conferma as confermaFoto,
+  confermati as confermatiFoto,
+  miaRosa,
+  nuovoClient as nuovoClientFoto,
+  percorsoFoto,
+  salvaAnalisi,
+  salvaFoto,
+  stima as stimaFoto,
+} from './lib/foto.js';
 import {
   APERTE,
   AVVISO_APERTO,
@@ -61,12 +78,18 @@ const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
  *  stesso e serve solo le API, invece di rifiutarsi di avviarsi. */
 if (CLIENT_BUILDATO) app.register(fastifyStatic, { root: DIST, wildcard: false });
 
-/** files: statistiche e xG si caricano due stagioni alla volta, quindi uno solo
- *  non basta piu'. Il tetto resta basso: nessuna fonte ne chiede piu' di due, e
- *  un limite aperto vorrebbe dire accettare un upload qualsiasi. */
-const MAX_FILE = 4;
+/** Le rotte delle fonti restano strette dove erano: nessuna chiede piu' di
+ *  due file, e un limite aperto vorrebbe dire accettare un upload qualsiasi.
+ *  Ora se lo applicano da sole, perche' il tetto della registrazione e'
+ *  diventato quello della rotta piu' larga. */
+const MAX_FILE_FONTE = 4;
+/** Uno in piu' del massimo, di proposito: al suo tetto multipart smette di
+ *  consegnare parti senza dirlo, e la richiesta muore con un "premature
+ *  close" invece che con un errore leggibile. Lasciandogliene passare una in
+ *  piu', a contare e' fileCaricati, che sa dire quante ne erano troppe.
+ *  Il tetto vero resta MAX_FOTO, applicato dalle rotte. */
 app.register(fastifyMultipart, {
-  limits: { fileSize: LIMITE_UPLOAD_MB * 1024 * 1024, files: MAX_FILE },
+  limits: { fileSize: LIMITE_UPLOAD_MB * 1024 * 1024, files: MAX_FOTO + 1 },
 });
 
 /** La porta d'ingresso.
@@ -207,12 +230,34 @@ app.post('/api/listone/upload', async (req, reply) => {
   }
 });
 
-/** Piu' file in una richiesta sola: le due stagioni si caricano insieme.
+const TROPPI = () => Object.assign(new Error('troppi file'), { code: 'FST_FILES_LIMIT' });
+
+/** Piu' file in una richiesta sola: due stagioni di statistiche, o venti
+ *  schermate da analizzare. Ogni rotta dice il suo massimo, perche' non e'
+ *  lo stesso numero.
  *  I buffer si consumano uno per uno mentre si scorre, com'e' richiesto da
  *  multipart: saltare una parte senza leggerla blocca il flusso. */
-async function fileCaricati(req) {
+async function fileCaricati(req, massimo = MAX_FOTO) {
   const out = [];
-  for await (const parte of req.files()) out.push({ nomeFile: parte.filename, buf: await parte.toBuffer() });
+  let troppi = false;
+  try {
+    for await (const parte of req.files()) {
+      // Il buffer si legge comunque, anche oltre il tetto: saltare una parte
+      // senza consumarla blocca il flusso multipart, e la richiesta resterebbe
+      // appesa invece di ricevere il suo errore.
+      const buf = await parte.toBuffer();
+      if (out.length < massimo) out.push({ nomeFile: parte.filename, buf });
+      else troppi = true;
+    }
+  } catch (e) {
+    // Al SUO tetto multipart smette di consegnare parti e chiude il flusso di
+    // netto: chi ha mandato trenta file si vedrebbe tornare un "premature
+    // close", che non dice niente. Se a quel punto ne avevamo gia' contati
+    // piu' del massimo, il motivo vero e' questo, e va detto quello.
+    if (troppi || out.length >= massimo) throw TROPPI();
+    throw e;
+  }
+  if (troppi) throw TROPPI();
   return out;
 }
 
@@ -222,7 +267,7 @@ function rispondiUpload(reply, req, e, cosa) {
   if (e?.code === 'FST_REQ_FILE_TOO_LARGE')
     return reply.code(413).send({ error: `file troppo grande: il limite e' ${LIMITE_UPLOAD_MB} MB` });
   if (e?.code === 'FST_FILES_LIMIT')
-    return reply.code(413).send({ error: `troppi file: al massimo ${MAX_FILE} per richiesta` });
+    return reply.code(413).send({ error: `troppi file: al massimo ${MAX_FILE_FONTE} per richiesta` });
   if (e instanceof ErroreListone || e instanceof ErroreXg) {
     req.log.warn({ err: e }, `upload ${cosa} rifiutato`);
     return reply.code(400).send({ error: e.message, ...(e.righeGrezze ? { righeGrezze: e.righeGrezze } : {}) });
@@ -236,7 +281,7 @@ function rispondiUpload(reply, req, e, cosa) {
 app.post('/api/stats/upload', async (req, reply) => {
   let caricati;
   try {
-    caricati = await fileCaricati(req);
+    caricati = await fileCaricati(req, MAX_FILE_FONTE);
   } catch (e) {
     return rispondiUpload(reply, req, e, 'statistiche');
   }
@@ -256,7 +301,7 @@ app.post('/api/stats/upload', async (req, reply) => {
 app.post('/api/xg/upload', async (req, reply) => {
   let caricati;
   try {
-    caricati = await fileCaricati(req);
+    caricati = await fileCaricati(req, MAX_FILE_FONTE);
   } catch (e) {
     return rispondiUpload(reply, req, e, 'xG');
   }
@@ -376,6 +421,100 @@ app.post('/api/rosa', (req, reply) => {
   if (!r.ok) return reply.code(400).send({ error: r.errore });
   req.log.info({ azione: r.azione, nome: r.nome, prezzo: r.prezzo }, 'rosa modificata a mano');
   return { ...r, ...stato() };
+});
+
+/** ---------------------------------------------------------------- foto
+ *
+ *  Schermate di probabili formazioni che nessun parser sa leggere, guardate
+ *  da Claude. Le immagini restano su disco in data/foto: l'analisi si rilegge
+ *  a distanza di settimane e senza le foto accanto non si potrebbe piu'
+ *  verificare da dove veniva. */
+app.post('/api/foto/analizza', async (req, reply) => {
+  if (chiaveFotoMancante())
+    return reply.code(400).send({ error: 'ANTHROPIC_API_KEY non impostata', motivo: 'chiave' });
+
+  const rosa = miaRosa();
+  if (!rosa.length) return reply.code(400).send({ error: 'la rosa e\' vuota: senza non c\'e\' contesto da mandare' });
+
+  let caricati;
+  try {
+    caricati = await fileCaricati(req);
+  } catch (e) {
+    if (e?.code === 'FST_FILES_LIMIT')
+      return reply.code(413).send({ error: `troppe immagini: al massimo ${MAX_FOTO} per volta` });
+    return rispondiUpload(reply, req, e, 'foto');
+  }
+  if (!caricati.length) return reply.code(400).send({ error: "nessuna immagine ricevuta" });
+  if (caricati.length > MAX_FOTO)
+    return reply.code(413).send({ error: `troppe immagini: al massimo ${MAX_FOTO} per volta` });
+
+  const { cartella, dir, immagini, rifiutate } = salvaFoto(caricati);
+  if (!immagini.length)
+    return reply.code(400).send({ error: 'nessuna immagine leggibile fra quelle caricate', rifiutate });
+
+  const preventivo = stimaFoto(immagini, rosa);
+  const esito = await analizzaFoto(nuovoClientFoto(), dir, immagini, rosa);
+  if (!esito.ok) {
+    req.log.warn({ errore: esito.errore, cartella }, 'analisi foto fallita');
+    // Le immagini restano dove sono: la chiamata si puo' rifare senza
+    // ricaricarle, e il motivo del fallimento spesso e' temporaneo.
+    return reply.code(502).send({ error: esito.errore, motivo: 'claude', cartella, immagini, rifiutate });
+  }
+
+  const c = registra({ tipo: 'foto', modello: MODELLO, uso: esito.uso });
+  const { id, created_at } = salvaAnalisi({
+    cartella,
+    immagini,
+    esito,
+    modello: MODELLO,
+    uso: esito.uso,
+    costo: c.costo,
+  });
+  req.log.info({ id, immagini: immagini.length, voci: esito.voci.length, costo: c.costo }, 'analisi foto');
+  return {
+    ok: true,
+    id,
+    created_at,
+    cartella,
+    immagini,
+    rifiutate,
+    preventivo,
+    voci: esito.voci,
+    illeggibili: esito.illeggibili,
+    scartate: esito.scartate,
+    riassunto: esito.riassunto,
+    erroreLettura: esito.errore,
+    consumo: c,
+  };
+});
+
+/** L'archivio delle analisi, dalla piu' recente: servono a confrontare una
+ *  settimana con la precedente. `confermati` dice quali voci sono gia' state
+ *  prese, cosi' il pulsante non si ripropone su una gia' fatta. */
+app.get('/api/foto', () => ({ analisi: analisiFoto(), confermati: confermatiFoto(), max: MAX_FOTO }));
+
+/** Le immagini salvate. Non passa da @fastify/static: quella serve il client
+ *  buildato, e data/foto sta fuori da li' - su Railway sta perfino su un altro
+ *  filesystem. */
+app.get('/api/foto/:cartella/:file', (req, reply) => {
+  const p = percorsoFoto(req.params.cartella, req.params.file);
+  if (!p || !fs.existsSync(p)) return reply.code(404).send({ error: 'immagine non trovata' });
+  const mime = mimeDaEstensione(path.extname(p).slice(1));
+  return reply.type(mime ?? 'application/octet-stream').send(fs.createReadStream(p));
+});
+
+/** La conferma: da qui, e solo da qui, un'estrazione da foto diventa un
+ *  segnale. Una voce alla volta, decisa da chi guarda. */
+app.post('/api/foto/conferma', (req, reply) => {
+  const playerId = Number(req.body?.playerId);
+  if (!Number.isInteger(playerId)) return reply.code(400).send({ error: 'playerId mancante o non intero' });
+  const r =
+    req.body?.annulla === true
+      ? annullaConfermaFoto(playerId, String(req.body?.tipo ?? ''))
+      : confermaFoto(playerId, String(req.body?.tipo ?? ''), req.body?.testo);
+  if (!r.ok) return reply.code(400).send({ error: r.errore ?? 'niente da annullare' });
+  req.log.info({ playerId, tipo: req.body?.tipo, annulla: req.body?.annulla === true }, 'segnale da foto');
+  return { ...r, confermati: confermatiFoto(), ...stato() };
 });
 
 app.post('/api/reset', (req) => {

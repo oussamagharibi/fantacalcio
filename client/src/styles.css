@@ -918,3 +918,45 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .sq-in-campo[data-ruolo='A'] { border-left-color: var(--A); }
 .sq-in-campo.fuori { opacity: 0.45; text-decoration: line-through; }
 .sq-fonte-turno { font-size: 11.5px; margin-top: 8px; }
+
+/* Analisi da foto. Le anteprime sono grandi abbastanza da riconoscere quale
+   schermata e' quale, non da leggerle: per quello c'e' il link. */
+.foto-comandi { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.foto-stima { font-size: 13px; background: var(--card-alta); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.foto-griglia { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; margin-top: 10px; }
+.foto-cella { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--card); }
+.foto-cella img { display: block; width: 100%; height: 96px; object-fit: cover; background: var(--card-alta); }
+.foto-x {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; padding: 0;
+  border-radius: 50%; border: 1px solid var(--line); background: var(--card);
+  color: var(--fg); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.foto-x:hover { background: var(--ko); color: #fff; }
+.foto-didascalia { display: flex; flex-direction: column; gap: 1px; padding: 5px 6px; font-size: 11px; }
+.foto-didascalia strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.foto-archivio { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.foto-date { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.foto-riassunto { white-space: pre-wrap; font-size: 13.5px; background: var(--card-alta); border-left: 3px solid var(--acc); padding: 8px 12px; border-radius: 0 6px 6px 0; margin: 8px 0 12px; }
+
+.foto-voci { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.foto-voce { display: grid; grid-template-columns: 130px 110px 92px 1fr 54px auto; align-items: center; gap: 8px; font-size: 13px; padding: 4px 6px; border-radius: 6px; }
+.foto-voce:hover { background: var(--card-alta); }
+.foto-voce.presa { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.foto-dove { font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.foto-nota { font-size: 12.5px; }
+.foto-stato.ok { border-color: var(--ok); color: var(--ok); }
+.foto-stato.forse { border-color: var(--oro); color: var(--oro); }
+.foto-stato.no { opacity: 0.7; }
+.foto-fonte { display: flex; align-items: center; gap: 4px; }
+.foto-fonte img { width: 34px; height: 24px; object-fit: cover; border: 1px solid var(--line); border-radius: 3px; }
+.foto-fonte.vuota { justify-content: center; }
+.foto-niente { font-size: 11.5px; }
+.bottone.piccolo { padding: 2px 8px; font-size: 12px; }
+.bottone.fatto { border-color: var(--ok); color: var(--ok); }
+.foto-assenti { font-size: 12px; margin-top: 8px; }
+
+@media (max-width: 820px) {
+  .foto-voce { grid-template-columns: 1fr auto; grid-auto-flow: row; }
+  .foto-nota { grid-column: 1 / -1; }
+}

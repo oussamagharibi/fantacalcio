@@ -64,3 +64,19 @@ export const getStatoAggiornamento = () => json('/api/news/stato');
 /** Il conto delle chiamate a Claude: per tipo, in totale, e da quando il
  *  server e acceso. */
 export const getConsumo = () => json('/api/consumo');
+
+/** Analisi da foto: le schermate che nessun parser sa leggere.
+ *  Le immagini partono gia' ridimensionate dal browser - il campo si chiama
+ *  "file" come per tutti gli altri upload. */
+export function postFoto(files) {
+  const dati = new FormData();
+  for (const f of files) dati.append('file', f);
+  return json('/api/foto/analizza', { method: 'POST', body: dati });
+}
+
+/** L'archivio delle analisi, dalla piu' recente, con le voci gia' confermate. */
+export const getFoto = () => json('/api/foto');
+
+/** Da estrazione a segnale: una voce alla volta, decisa da chi guarda.
+ *  Con { annulla: true } toglie la conferma. Torna lo stato aggiornato. */
+export const postConfermaFoto = (corpo) => invia('/api/foto/conferma', corpo);

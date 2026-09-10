@@ -4,5 +4,7 @@ node_modules/
 /data/*.db
 /data/backups/
 /data/listone.xlsx
+# Le schermate caricate per l'analisi da foto: roba mia, e pesano.
+/data/foto/
 client/dist/
 *.log

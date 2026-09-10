@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BadgeGiocatore, BadgeSquadra } from './Badge.jsx';
 import { ChipRigorista, ChipParaRigori } from './Chips.jsx';
+import Foto from './Foto.jsx';
 import Gestione from './Gestione.jsx';
 import { RUOLI as RUOLI_NOMI } from './squadre.js';
 import { postRosa } from './api.js';
@@ -449,6 +450,11 @@ export default function Squadra({ stato, onStato, onApri, onAvviso }) {
           ))}
         </ul>
       </section>
+
+      {/* Analisi da foto: sta dopo la panchina perche risponde alla stessa
+          domanda - chi gioca domenica - e prima della gestione, che guarda
+          al mercato invece che al turno. */}
+      <Foto rosa={r} onApri={onApri} onStato={onStato} onAvviso={onAvviso} />
 
       {/* Gestione rosa: sta dopo la formazione perche si legge dopo aver
           visto chi gioca, e prima della spesa perche la spesa e uno dei suoi
