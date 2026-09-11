@@ -454,6 +454,14 @@ export function salvaAnalisi({ esito, dati, classifica, modello, uso, costo }) {
       giornata,
       esito.modulo,
       JSON.stringify({
+        // DIAGNOSTICA: la risposta come e' arrivata, prima di qualunque
+        // lettura. Senza, quando il parsing fallisce non resta niente da
+        // guardare e si puo' solo tirare a indovinare.
+        grezzo: esito.grezzo ?? null,
+        // "max_tokens" qui vuol dire che la risposta e' stata tagliata a
+        // meta': e' la prima cosa da guardare quando gli array sono vuoti.
+        stop: esito.stop ?? null,
+        erroreLettura: esito.errore ?? null,
         moduloScelto: esito.moduloScelto ?? null,
         perche_modulo: esito.perche_modulo,
         undici: esito.undici,
@@ -500,6 +508,10 @@ const daRiga = (r) => {
     rischi: c.rischi ?? [],
     datiMancanti: c.datiMancanti ?? [],
     scartate: c.scartate ?? [],
+    grezzo: c.grezzo ?? null,
+    stop: c.stop ?? null,
+    erroreLettura: c.erroreLettura ?? null,
+    troncata: c.stop === 'max_tokens',
     dati: c.dati ?? [],
     buchi: c.buchi ?? [],
     classifica: c.classifica ?? null,

@@ -582,7 +582,13 @@ app.post('/api/giornata/analizza', async (req, reply) => {
     uso: esito.uso,
     costo: c.costo,
   });
-  req.log.info({ id, giornata, modulo: esito.modulo, moduloScelto: modulo, costo: c.costo }, 'analisi giornata');
+  // Nel log finiscono anche il motivo di arresto e l'eventuale errore di
+  // lettura: se la risposta e' stata tagliata, si vede da qui prima ancora
+  // di aprire la pagina.
+  req.log.info(
+    { id, giornata, modulo: esito.modulo, moduloScelto: modulo, costo: c.costo, stop: esito.stop, erroreLettura: esito.errore },
+    'analisi giornata'
+  );
   return {
     ok: true,
     id,

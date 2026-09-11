@@ -1013,3 +1013,12 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .gio-costo { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
 .gio-costo.si { border-color: var(--ok); color: var(--ok); }
 .gio-costo.no { border-color: var(--oro); color: var(--oro); }
+
+/* La risposta grezza: chiusa di default, sta li' per quando serve guardarla. */
+.gio-grezzo { margin-top: 10px; font-size: 12px; }
+.gio-grezzo summary { cursor: pointer; color: var(--muted); }
+.gio-grezzo pre {
+  margin-top: 6px; padding: 10px; max-height: 340px; overflow: auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+}

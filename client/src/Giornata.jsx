@@ -180,6 +180,26 @@ function Analisi({ a, dati }) {
           {new Date(a.classifica.aggiornataIl).toLocaleString('it-IT')} ({a.classifica.righe.length} squadre).
         </p>
       )}
+      {/* DIAGNOSTICA. Finora una risposta illeggibile spariva senza dire
+          niente: la pagina mostrava undici vuoti e nessun motivo. Qui ci
+          sono il motivo di arresto, l'errore di lettura e la risposta
+          come e' arrivata. */}
+      {(a.erroreLettura || a.troncata) && (
+        <p className="errore">
+          {a.troncata
+            ? `La risposta e' stata tagliata al tetto di token (stop_reason: ${a.stop}): e' arrivata a meta' e non si e' potuta leggere.`
+            : `Risposta non leggibile: ${a.erroreLettura}`}
+        </p>
+      )}
+      {a.grezzo && (
+        <details className="gio-grezzo">
+          <summary>
+            Risposta grezza di Claude — {a.grezzo.length} caratteri
+            {a.stop ? ` · stop_reason: ${a.stop}` : ''}
+          </summary>
+          <pre>{a.grezzo}</pre>
+        </details>
+      )}
     </div>
   );
 }
