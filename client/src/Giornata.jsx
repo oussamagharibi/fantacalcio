@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getGiornata, postGiornata } from './api.js';
 import { BadgeGiocatore } from './Badge.jsx';
 import { dollari, token } from './consumo.js';
-import { ETICHETTE_RISCHIO, MODIFICATORE_MAX, conModificatore, esclusi, verifica } from './giornata.js';
+import { ETICHETTE_RISCHIO, MODIFICATORE_MAX, MODIFICATORE_MIN_D, OPZIONI_MODULO, conModificatore, esclusi, moduloDiRiferimento, verifica } from './giornata.js';
 
 /** "Analizza la giornata": il secondo parere su chi schierare.
  *
@@ -76,13 +76,15 @@ function Undici({ a, dati }) {
 function Analisi({ a, dati }) {
   const v = useMemo(() => verifica(a, dati), [a, dati]);
   const fuori = useMemo(() => esclusi(a, dati), [a, dati]);
-  const conMod = a.modulo ? conModificatore(a.modulo) : null;
+  const rif = moduloDiRiferimento(a);
+  const conMod = v.modificatoreInCampo;
 
   return (
     <div className="gio-analisi">
       <div className="sq-modulo-testa">
         <h4>
-          {a.modulo ?? a.moduloDichiarato ?? '—'}
+          {moduloDiRiferimento(a) ?? a.moduloDichiarato ?? '—'}
+          <span className="muted"> · {a.moduloScelto ? 'modulo scelto da te' : 'modulo scelto da Claude'}</span>
           {a.giornata && <span className="muted"> · giornata {a.giornata}</span>}
         </h4>
         <span className="muted">
@@ -93,8 +95,9 @@ function Analisi({ a, dati }) {
 
       <p className={`gio-mod ${conMod ? 'si' : 'no'}`}>
         {conMod
-          ? `Modificatore attivo: ${v.conta.D} difensori, quindi portiere piu' i 3 migliori valgono fino a +${MODIFICATORE_MAX}.`
-          : `Niente modificatore: ${v.conta.D} difensori, sotto i 4 che servono.`}
+          ? `Modificatore attivo: ${v.conta.D} difensori in campo, quindi portiere piu' i 3 migliori valgono fino a +${MODIFICATORE_MAX}.`
+          : `Niente modificatore: ${v.conta.D} difensori in campo, sotto i ${MODIFICATORE_MIN_D} che servono. Rinunci a un bonus che arriva a +${MODIFICATORE_MAX}.`}
+        {rif && v.scelto && <span className="muted"> Modulo {rif}, scelto da te.</span>}
       </p>
       {a.perche_modulo && <p className="gio-perche">{a.perche_modulo}</p>}
 
@@ -184,6 +187,7 @@ function Analisi({ a, dati }) {
 export default function Giornata({ onAvviso }) {
   const [d, setD] = useState(null);
   const [aperta, setAperta] = useState(null);
+  const [modulo, setModulo] = useState('');
   const [fase, setFase] = useState(null);
   const [errore, setErrore] = useState(null);
 
@@ -205,7 +209,7 @@ export default function Giornata({ onAvviso }) {
     setErrore(null);
     setFase('raccolgo i dati e chiedo a Claude…');
     try {
-      const r = await postGiornata();
+      const r = await postGiornata(modulo ? { modulo } : {});
       const x = await getGiornata();
       setD(x);
       setAperta(r.id);
@@ -224,6 +228,7 @@ export default function Giornata({ onAvviso }) {
   if (!d && !errore) return null;
 
   const corrente = d?.analisi.find((a) => a.id === aperta) ?? null;
+  const scelta = OPZIONI_MODULO.find((o) => o.valore === modulo) ?? OPZIONI_MODULO[0];
 
   return (
     <section className="pannello">
@@ -232,9 +237,30 @@ export default function Giornata({ onAvviso }) {
         <span className="muted">il secondo parere, con i dati dell'archivio e la forza degli avversari</span>
       </div>
 
+      {/* Il modulo si sceglie PRIMA, e accanto a ognuno c'e' scritto se
+          attiva il modificatore: il costo della scelta si vede mentre la si
+          fa, non dopo averla fatta. */}
+      <div className="gio-scelta">
+        <label htmlFor="gio-modulo">Modulo</label>
+        <select id="gio-modulo" value={modulo} onChange={(e) => setModulo(e.target.value)} disabled={!!fase}>
+          {OPZIONI_MODULO.map((o) => (
+            <option key={o.valore} value={o.valore}>
+              {o.etichetta} — {o.nota}
+            </option>
+          ))}
+        </select>
+        <span className={`gio-costo ${scelta.modificatore === null ? '' : scelta.modificatore ? 'si' : 'no'}`}>
+          {scelta.modificatore === null
+            ? 'Claude sceglie il modulo migliore e spiega perche'
+            : scelta.modificatore
+              ? `${scelta.difensori} difensori: modificatore attivo, fino a +${MODIFICATORE_MAX}`
+              : `${scelta.difensori} difensori: rinunci al modificatore, fino a +${MODIFICATORE_MAX} che non prendi`}
+        </span>
+      </div>
+
       <div className="foto-comandi">
         <button className="bottone primario" onClick={analizza} disabled={!!fase}>
-          Analizza la giornata
+          {modulo ? `Analizza la giornata nel ${modulo}` : 'Analizza la giornata'}
         </button>
         {fase && <span className="muted">{fase}</span>}
         {!fase && d?.stima && (
@@ -272,7 +298,11 @@ export default function Giornata({ onAvviso }) {
                 onClick={() => setAperta(a.id)}
               >
                 {a.giornata ? `g${a.giornata}` : dataOra(a.created_at)}
-                <span className="muted"> · {a.modulo ?? '?'}</span>
+                <span className="muted">
+                  {' '}
+                  · {moduloDiRiferimento(a) ?? '?'}
+                  {a.moduloScelto ? ' (tuo)' : ''}
+                </span>
               </button>
             ))}
           </div>

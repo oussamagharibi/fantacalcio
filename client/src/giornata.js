@@ -39,13 +39,27 @@ export const statoDisponibilita = (g) => {
 /** I controlli, tutti insieme. Ognuno torna un rilievo con la sua gravita':
  *  'errore' e' qualcosa che non si puo' schierare, 'nota' e' qualcosa da
  *  sapere prima di copiare la formazione. */
+/** Il modulo su cui si controlla.
+ *
+ *  Se l'ho scelto io, e' il mio: la risposta va misurata su quello che le ho
+ *  chiesto, non su quello che ha deciso lei. Altrimenti e' quello proposto. */
+export const moduloDiRiferimento = (a) => a?.moduloScelto ?? a?.modulo ?? null;
+
 export function verifica(a, dati = []) {
   const rilievi = [];
   const per = new Map(dati.map((g) => [g.id, g]));
   const undici = a?.undici ?? [];
-  const m = scomponi(a?.modulo);
+  const scelto = a?.moduloScelto ?? null;
+  const riferimento = moduloDiRiferimento(a);
+  const m = scomponi(riferimento);
 
-  if (!a?.modulo) rilievi.push({ gravita: 'errore', testo: `modulo non riconosciuto: "${a?.moduloDichiarato ?? '(assente)'}"` });
+  if (!riferimento) rilievi.push({ gravita: 'errore', testo: `modulo non riconosciuto: "${a?.moduloDichiarato ?? '(assente)'}"` });
+
+  // Avevo chiesto un modulo e ne e' arrivato un altro: si controlla comunque
+  // sul mio, ma la disobbedienza va vista - e' il motivo per cui il selettore
+  // esiste.
+  if (scelto && a?.modulo && a.modulo !== scelto)
+    rilievi.push({ gravita: 'errore', testo: `avevo chiesto il ${scelto} e la risposta propone il ${a.modulo}` });
 
   if (undici.length !== 11)
     rilievi.push({ gravita: 'errore', testo: `l'undici ne ha ${undici.length}, non 11` });
@@ -58,7 +72,7 @@ export function verifica(a, dati = []) {
   if (m) {
     for (const [ruolo, atteso] of [['D', m.D], ['C', m.C], ['A', m.A]])
       if (conta[ruolo] !== atteso)
-        rilievi.push({ gravita: 'errore', testo: `il ${a.modulo} vuole ${atteso} ${ruolo}, in campo ce ne sono ${conta[ruolo]}` });
+        rilievi.push({ gravita: 'errore', testo: `il ${riferimento} vuole ${atteso} ${ruolo}, in campo ce ne sono ${conta[ruolo]}` });
   }
 
   // Il pezzo che conta: chi non puo' giocare non deve stare in campo.
@@ -87,22 +101,59 @@ export function verifica(a, dati = []) {
     if (statoDisponibilita(per.get(g.id)) === 'fuori')
       rilievi.push({ gravita: 'nota', testo: `${g.nome} e' in panchina ma risulta fuori` });
 
-  if (a?.modulo && !conModificatore(a.modulo))
-    rilievi.push({
-      gravita: a?.perche_modulo ? 'nota' : 'errore',
-      testo: a?.perche_modulo
-        ? `${a.modulo}: 3 difensori, niente modificatore — la motivazione c'e'`
-        : `${a.modulo}: 3 difensori, niente modificatore, e non e' spiegato perche'`,
-    });
+  // Modulo senza modificatore. Chi l'ha scelto cambia la gravita': se l'ho
+  // imposto io, la scelta e' mia e quello che manca e' al piu' il promemoria
+  // di cosa ci rimetto. Se l'ha scelto il modello senza spiegarsi, e' un
+  // errore: la richiesta diceva di spiegarlo.
+  if (riferimento && !conModificatore(riferimento)) {
+    const d = scomponi(riferimento).D;
+    if (scelto)
+      rilievi.push({
+        gravita: 'nota',
+        testo: a?.perche_modulo
+          ? `${riferimento}: ${d} difensori, niente modificatore — l'hai scelto tu e il promemoria c'e'`
+          : `${riferimento}: ${d} difensori, niente modificatore — l'hai scelto tu, ma manca il promemoria di cosa ci rimetti`,
+      });
+    else
+      rilievi.push({
+        gravita: a?.perche_modulo ? 'nota' : 'errore',
+        testo: a?.perche_modulo
+          ? `${riferimento}: ${d} difensori, niente modificatore — la motivazione c'e'`
+          : `${riferimento}: ${d} difensori, niente modificatore, e non e' spiegato perche'`,
+      });
+  }
 
   return {
     rilievi,
     errori: rilievi.filter((r) => r.gravita === 'errore').length,
     note: rilievi.filter((r) => r.gravita === 'nota').length,
     conta,
-    modificatore: a?.modulo ? conModificatore(a.modulo) : null,
+    riferimento,
+    scelto,
+    // Quello che dice il modulo di riferimento...
+    modificatore: riferimento ? conModificatore(riferimento) : null,
+    // ...e quello che succede davvero. Di solito coincidono, ma se l'undici
+    // non rispetta il modulo sono due cose diverse, e il modificatore lo
+    // decide chi e' in campo, non l'etichetta del modulo.
+    modificatoreInCampo: conta.D >= MODIFICATORE_MIN_D,
   };
 }
+
+/** Le voci del selettore, col costo della scelta gia' scritto accanto: si
+ *  vede cosa si perde PRIMA di sceglierlo, che era il punto. */
+export const OPZIONI_MODULO = [
+  { valore: '', etichetta: 'Scegli tu', nota: 'decide Claude qual e\' il migliore', modificatore: null, difensori: null },
+  ...MODULI.map((m) => {
+    const d = scomponi(m).D;
+    return {
+      valore: m,
+      etichetta: m,
+      difensori: d,
+      modificatore: d >= MODIFICATORE_MIN_D,
+      nota: d >= MODIFICATORE_MIN_D ? `${d} difensori · modificatore fino a +${MODIFICATORE_MAX}` : `${d} difensori · niente modificatore`,
+    };
+  }),
+];
 
 /** Gli esclusi: chi e' in rosa e non compare ne' in campo ne' in panchina.
  *  Vale la pena vederli, perche' un infortunato escluso e' giusto e un

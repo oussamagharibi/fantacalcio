@@ -1001,3 +1001,15 @@ input[type='file'] { padding: 6px; cursor: pointer; }
 .gio-tipo.difesa-forte { border-color: var(--oro); color: var(--oro); }
 .gio-tipo.rientro { border-color: var(--acc); color: var(--acc); }
 .gio-esclusi { font-size: 12px; margin-top: 10px; }
+
+/* Il selettore del modulo: sta sopra il pulsante perche' la scelta viene
+   prima, e il costo di quella scelta sta accanto al menu, non sotto. */
+.gio-scelta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 2px; font-size: 13px; }
+.gio-scelta label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.gio-scelta select {
+  background: var(--card); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font-size: 13px; font-family: inherit;
+}
+.gio-costo { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.gio-costo.si { border-color: var(--ok); color: var(--ok); }
+.gio-costo.no { border-color: var(--oro); color: var(--oro); }

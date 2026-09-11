@@ -240,8 +240,25 @@ export const elenco = (dati, classifica) => dati.map((g) => scheda(g, classifica
  *  le sue quattro sezioni. Qui c'e' solo come impacchettarle: servono divise
  *  per mostrarle divise, e per poter controllare che l'undici consigliato
  *  torni davvero col modulo dichiarato. */
-export const ISTRUZIONI = `Rispondi SOLO in JSON, nessun preambolo, nessun markdown:
-{"modulo":"4-4-2",
+/** Quanti difensori vuole un modulo, e quindi se il modificatore si attiva.
+ *  Stesso conto che fa il client: qui serve a scrivere il promemoria nel
+ *  prompt, la' a controllare la risposta. */
+export const difensoriDi = (modulo) => {
+  const p = String(modulo ?? '').split('-').map(Number);
+  return p.length === 3 && Number.isInteger(p[0]) ? p[0] : null;
+};
+export const attivaModificatore = (modulo) => (difensoriDi(modulo) ?? 0) >= REGOLE.difensoriMinimiPerModificatore;
+
+/** Il modulo si accetta solo se e' uno del regolamento. Qualunque altra cosa
+ *  - stringa vuota, null, "4-4-3", un numero - vale "scegli tu". */
+export const moduloValido = (m) => (MODULI.includes(String(m ?? '').trim()) ? String(m).trim() : null);
+
+/** Il formato della risposta. Cambia quando il modulo e' imposto: chiedere
+ *  "perche' questo modulo" a chi non l'ha scelto non ha senso, e la casella
+ *  giusta da riempire diventa un'altra - cosa si rinuncia tenendolo. */
+export const istruzioni = (modulo = null) =>
+  `Rispondi SOLO in JSON, nessun preambolo, nessun markdown:
+{"modulo":"${modulo ?? '4-4-2'}",
  "perche_modulo":"...",
  "undici":[{"nome":"...","ruolo":"P|D|C|A","motivo":"..."}],
  "panchina":[{"nome":"...","perche_entra":"..."}],
@@ -250,13 +267,38 @@ export const ISTRUZIONI = `Rispondi SOLO in JSON, nessun preambolo, nessun markd
  "dati_mancanti":["..."]}
 
 nome: esattamente come compare nei dati che ti vengono dati.
-undici: undici voci, un portiere piu' i dieci del modulo dichiarato.
+undici: undici voci, un portiere piu' i dieci del modulo${modulo ? ' richiesto' : ' dichiarato'}.
 panchina: in ordine di probabilita' di entrare, la prima e' la piu' probabile.
-perche_modulo: obbligatorio, e se il modulo ha 3 difensori deve dire perche' conviene rinunciare al modificatore.
+${
+  modulo
+    ? `modulo: deve essere esattamente "${modulo}". Non proporne un altro.
+perche_modulo: ${
+        attivaModificatore(modulo)
+          ? 'come sfrutti questa disposizione con i giocatori che ho.'
+          : `il modulo ha ${difensoriDi(modulo)} difensori: di' che il modificatore non si attiva e quanto ci rimetto, senza proporre di cambiarlo.`
+      }`
+    : `perche_modulo: obbligatorio, e se il modulo ha 3 difensori deve dire perche' conviene rinunciare al modificatore.`
+}
 motivo: solo per le scelte non ovvie; stringa vuota quando la scelta si spiega da se'.
 dati_mancanti: i dati che ti sarebbero serviti e non c'erano. Vuoto se non ne mancano.`;
 
-export const costruisciPrompt = (dati, classifica) => `Devo schierare la formazione per la prossima giornata di fantacalcio.
+/** Il paragrafo di chiusura, che e' l'unico punto in cui il prompt cambia.
+ *
+ *  Con "scegli tu" resta quello di sempre, che spinge verso 4-5 difensori.
+ *  Con un modulo imposto quel paragrafo va VIA, non affiancato: invita a
+ *  riconsiderare il modulo, cioe' esattamente quello che non deve fare. Al
+ *  suo posto va il testo dettato da chi gioca, parola per parola. */
+export const chiusura = (modulo = null) =>
+  modulo
+    ? `Devo schierare il modulo ${modulo}. Non proporre moduli diversi: scegli
+il miglior undici possibile con questa disposizione.
+Se il modulo ha 3 difensori, ricordami che il modificatore non si
+attiva e quanto sto rinunciando, ma non cambiare modulo.`
+    : `Considera che il modificatore rende quasi sempre meglio schierare 4
+o 5 difensori. Se consigli 3 difensori, spiega perche' conviene
+rinunciare al modificatore.`;
+
+export const costruisciPrompt = (dati, classifica, modulo = null) => `Devo schierare la formazione per la prossima giornata di fantacalcio.
 
 Lega Classic, ${REGOLE.squadre} squadre. Il modificatore di difesa vale fino a +${REGOLE.modificatoreMax}
 punti e si calcola su portiere piu' i 3 migliori difensori, ma solo
@@ -278,15 +320,13 @@ Rispondi con:
 4. I RISCHI: chi potrebbe non giocare, chi affronta una difesa
    forte, chi e' appena rientrato
 
-Considera che il modificatore rende quasi sempre meglio schierare 4
-o 5 difensori. Se consigli 3 difensori, spiega perche' conviene
-rinunciare al modificatore.
+${chiusura(modulo)}
 
 Basati solo sui dati forniti. Se un dato manca, dillo invece di
 stimarlo.`;
 
-export function stima(dati, classifica) {
-  const input = stimaToken(ISTRUZIONI) + stimaToken(costruisciPrompt(dati, classifica));
+export function stima(dati, classifica, modulo = null) {
+  const input = stimaToken(istruzioni(modulo)) + stimaToken(costruisciPrompt(dati, classifica, modulo));
   const output = 1400; // quattro sezioni, undici voci piu' panchina e rischi
   return {
     tokenInput: input,
@@ -297,19 +337,19 @@ export function stima(dati, classifica) {
 
 // ------------------------------------------------------------------ chiamata
 
-export async function analizza(client, dati, classifica) {
+export async function analizza(client, dati, classifica, modulo = null) {
   try {
     const risposta = await client.messages.create({
       model: MODELLO,
       max_tokens: MAX_TOKENS,
-      system: ISTRUZIONI,
-      messages: [{ role: 'user', content: costruisciPrompt(dati, classifica) }],
+      system: istruzioni(modulo),
+      messages: [{ role: 'user', content: costruisciPrompt(dati, classifica, modulo) }],
     });
     const grezzo = risposta.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
     return {
       ok: true,
       grezzo,
-      ...leggiRisposta(grezzo, dati),
+      ...leggiRisposta(grezzo, dati, modulo),
       uso: { input: risposta.usage.input_tokens, output: risposta.usage.output_tokens },
       stop: risposta.stop_reason,
     };
@@ -329,8 +369,13 @@ export async function analizza(client, dati, classifica) {
  *  Un nome che non e' dei miei si scarta: non e' un consiglio, e' un errore,
  *  e schierare un giocatore che non ho e' peggio che non ricevere il
  *  consiglio. */
-export function leggiRisposta(testo, dati) {
-  const vuoto = { modulo: null, perche_modulo: null, undici: [], panchina: [], ballottaggi: [], rischi: [], datiMancanti: [], scartate: [] };
+/** moduloScelto e' quello chiesto da chi gioca, o null per "scegli tu".
+ *  Torna nel risultato perche' i controlli devono girare su quello, non su
+ *  quello che il modello ha scritto nella risposta: se i due non coincidono,
+ *  la risposta non ha rispettato la richiesta, e va visto. */
+export function leggiRisposta(testo, dati, moduloScelto = null) {
+  const scelto = moduloValido(moduloScelto);
+  const vuoto = { modulo: null, moduloScelto: scelto, perche_modulo: null, undici: [], panchina: [], ballottaggi: [], rischi: [], datiMancanti: [], scartate: [] };
   const grezzo = String(testo ?? '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   const i = grezzo.indexOf('{');
   const f = grezzo.lastIndexOf('}');
@@ -356,9 +401,10 @@ export function leggiRisposta(testo, dati) {
       return [{ id: g.id, nome: g.nome, ruolo: g.ruolo, squadra: g.squadra, ...campi(x) }];
     });
 
-  const modulo = MODULI.includes(String(j?.modulo ?? '').trim()) ? String(j.modulo).trim() : null;
+  const modulo = moduloValido(j?.modulo);
   return {
     modulo,
+    moduloScelto: scelto,
     moduloDichiarato: String(j?.modulo ?? '').trim() || null,
     perche_modulo: String(j?.perche_modulo ?? '').trim() || null,
     undici: conGiocatore(j?.undici, 'undici', (x) => ({ motivo: String(x?.motivo ?? '').trim() || null })),
@@ -408,6 +454,7 @@ export function salvaAnalisi({ esito, dati, classifica, modello, uso, costo }) {
       giornata,
       esito.modulo,
       JSON.stringify({
+        moduloScelto: esito.moduloScelto ?? null,
         perche_modulo: esito.perche_modulo,
         undici: esito.undici,
         panchina: esito.panchina,
@@ -441,6 +488,7 @@ const daRiga = (r) => {
     created_at: r.created_at,
     giornata: r.giornata,
     modulo: r.modulo,
+    moduloScelto: c.moduloScelto ?? null,
     modello: r.modello,
     input_tokens: r.input_tokens,
     output_tokens: r.output_tokens,

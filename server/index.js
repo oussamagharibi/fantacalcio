@@ -42,8 +42,10 @@ import {
   analizza as analizzaGiornata,
   buchi as buchiGiornata,
   chiaveMancante as chiaveGiornataMancante,
-  datiGiocatori,
+  MODULI,
+  datiGiocatori,
   dativisti,
+  moduloValido,
   nuovoClient as nuovoClientGiornata,
   salvaAnalisi as salvaAnalisiGiornata,
   stima as stimaGiornata,
@@ -545,6 +547,16 @@ app.post('/api/giornata/analizza', async (req, reply) => {
   const dati = datiGiocatori(partite());
   if (!dati.length) return reply.code(400).send({ error: 'la rosa e\' vuota: non c\'e\' niente da schierare' });
 
+  // Il modulo chiesto da chi gioca, o null per "scegli tu". Un valore fuori
+  // dal regolamento non si corregge in silenzio: si rifiuta. Correggerlo
+  // vorrebbe dire ricevere una formazione in un modulo che non si era scelto.
+  const chiesto = req.body?.modulo ?? null;
+  const modulo = moduloValido(chiesto);
+  if (chiesto && !modulo)
+    return reply
+      .code(400)
+      .send({ error: `modulo "${chiesto}" non e' nel regolamento: ${MODULI.join(', ')}`, campo: 'modulo' });
+
   // La classifica e' un di piu': se non arriva si prosegue e lo si dice.
   // Nessun errore qui dentro deve impedire l'analisi.
   let classificaSA = null;
@@ -555,7 +567,7 @@ app.post('/api/giornata/analizza', async (req, reply) => {
   }
   if (!classificaSA.ok) req.log.warn({ motivo: classificaSA.motivo }, 'classifica SportCodex non disponibile');
 
-  const esito = await analizzaGiornata(nuovoClientGiornata(), dati, classificaSA);
+  const esito = await analizzaGiornata(nuovoClientGiornata(), dati, classificaSA, modulo);
   if (!esito.ok) {
     req.log.warn({ errore: esito.errore }, 'analisi giornata fallita');
     return reply.code(502).send({ error: esito.errore, motivo: 'claude' });
@@ -570,7 +582,7 @@ app.post('/api/giornata/analizza', async (req, reply) => {
     uso: esito.uso,
     costo: c.costo,
   });
-  req.log.info({ id, giornata, modulo: esito.modulo, costo: c.costo }, 'analisi giornata');
+  req.log.info({ id, giornata, modulo: esito.modulo, moduloScelto: modulo, costo: c.costo }, 'analisi giornata');
   return {
     ok: true,
     id,
@@ -592,7 +604,8 @@ app.get('/api/giornata', async (req) => {
   const salvata = classificaArchivio();
   return {
     analisi: analisiGiornata(),
-    quantiGiocatori: dati.length,
+    quantiGiocatori: dati.length,
+    moduli: MODULI,
     dati: dativisti(dati),
     buchi: buchiGiornata(dati, salvata?.ok ? salvata : null),
     stima: stimaGiornata(dati, salvata?.ok ? salvata : null),
