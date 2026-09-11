@@ -43,7 +43,7 @@ export function costoDi(modello, uso) {
  *  piu: le sue righe, se ce ne sono in archivio, si vedono lo stesso perche
  *  perTipo unisce questi ai tipi trovati davvero nella tabella. Un tipo
  *  morto non deve comparire a zero, ma i soldi spesi non si cancellano. */
-export const TIPI = ['note', 'foto'];
+export const TIPI = ['note', 'foto', 'giornata'];
 
 /** Registra una chiamata. Torna quello che ha scritto, costo compreso, cosi'
  *  chi ha chiesto puo' mostrarlo senza rileggere. */

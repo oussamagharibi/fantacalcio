@@ -11,6 +11,7 @@ export const ETICHETTE_TIPO = {
   consulente: 'Consulente in asta (rimosso)',
   note: 'Note AI',
   foto: 'Analisi da foto',
+  giornata: 'Analizza la giornata',
 };
 
 export const token = (n) => Number(n ?? 0).toLocaleString('it-IT');

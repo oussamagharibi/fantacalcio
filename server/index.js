@@ -8,6 +8,7 @@ import { statoConfig, validaConfig, salvaConfig, bloccata, numeroAcquisti } from
 import { scaricaListone, salvaEImporta, ErroreDownload, ErroreListone } from './lib/listone.js';
 import {
   stato,
+  partite,
   registraAcquisto,
   registraUscita,
   annullaUltima,
@@ -36,6 +37,18 @@ import {
   salvaFoto,
   stima as stimaFoto,
 } from './lib/foto.js';
+import {
+  analisi as analisiGiornata,
+  analizza as analizzaGiornata,
+  buchi as buchiGiornata,
+  chiaveMancante as chiaveGiornataMancante,
+  datiGiocatori,
+  dativisti,
+  nuovoClient as nuovoClientGiornata,
+  salvaAnalisi as salvaAnalisiGiornata,
+  stima as stimaGiornata,
+} from './lib/giornata.js';
+import { classifica, daArchivio as classificaArchivio } from './lib/sportcodex.js';
 import {
   APERTE,
   AVVISO_APERTO,
@@ -515,6 +528,78 @@ app.post('/api/foto/conferma', (req, reply) => {
   if (!r.ok) return reply.code(400).send({ error: r.errore ?? 'niente da annullare' });
   req.log.info({ playerId, tipo: req.body?.tipo, annulla: req.body?.annulla === true }, 'segnale da foto');
   return { ...r, confermati: confermatiFoto(), ...stato() };
+});
+
+/** ------------------------------------------------------------ giornata
+ *
+ *  "Analizza la giornata": tutto quello che l'archivio sa dei miei 25,
+ *  piu' la classifica di Serie A per pesare gli avversari, davanti a Claude.
+ *
+ *  Parte SOLO da questa rotta, cioe' solo quando si preme il pulsante: e' una
+ *  chiamata che si paga, e una pagina che spende da sola ogni volta che la si
+ *  apre e' una pagina che non si apre piu' volentieri. */
+app.post('/api/giornata/analizza', async (req, reply) => {
+  if (chiaveGiornataMancante())
+    return reply.code(400).send({ error: 'ANTHROPIC_API_KEY non impostata', motivo: 'chiave' });
+
+  const dati = datiGiocatori(partite());
+  if (!dati.length) return reply.code(400).send({ error: 'la rosa e\' vuota: non c\'e\' niente da schierare' });
+
+  // La classifica e' un di piu': se non arriva si prosegue e lo si dice.
+  // Nessun errore qui dentro deve impedire l'analisi.
+  let classificaSA = null;
+  try {
+    classificaSA = await classifica({ forza: req.body?.classificaFresca === true });
+  } catch (e) {
+    classificaSA = { ok: false, motivo: `errore imprevisto: ${e.message}` };
+  }
+  if (!classificaSA.ok) req.log.warn({ motivo: classificaSA.motivo }, 'classifica SportCodex non disponibile');
+
+  const esito = await analizzaGiornata(nuovoClientGiornata(), dati, classificaSA);
+  if (!esito.ok) {
+    req.log.warn({ errore: esito.errore }, 'analisi giornata fallita');
+    return reply.code(502).send({ error: esito.errore, motivo: 'claude' });
+  }
+
+  const c = registra({ tipo: 'giornata', modello: MODELLO, uso: esito.uso });
+  const { id, created_at, giornata } = salvaAnalisiGiornata({
+    esito,
+    dati,
+    classifica: classificaSA,
+    modello: MODELLO,
+    uso: esito.uso,
+    costo: c.costo,
+  });
+  req.log.info({ id, giornata, modulo: esito.modulo, costo: c.costo }, 'analisi giornata');
+  return {
+    ok: true,
+    id,
+    created_at,
+    giornata,
+    analisi: analisiGiornata(1)[0] ?? null,
+    classifica: classificaSA.ok
+      ? { ok: true, aggiornataIl: classificaSA.aggiornataIl, squadre: classificaSA.righe.length, daCache: !!classificaSA.daCache, vecchia: !!classificaSA.vecchia }
+      : { ok: false, motivo: classificaSA.motivo },
+    consumo: c,
+    erroreLettura: esito.errore,
+  };
+});
+
+/** Lo storico, piu' il preventivo: la stima si mostra PRIMA di premere, e per
+ *  farla servono i dati veri, non un numero a caso. */
+app.get('/api/giornata', async (req) => {
+  const dati = datiGiocatori(partite());
+  const salvata = classificaArchivio();
+  return {
+    analisi: analisiGiornata(),
+    quantiGiocatori: dati.length,
+    dati: dativisti(dati),
+    buchi: buchiGiornata(dati, salvata?.ok ? salvata : null),
+    stima: stimaGiornata(dati, salvata?.ok ? salvata : null),
+    classifica: salvata?.ok
+      ? { ok: true, aggiornataIl: salvata.aggiornataIl, presaIl: salvata.presaIl, squadre: salvata.righe.length }
+      : { ok: false, motivo: 'non ancora scaricata: arriva al primo "Analizza la giornata"' },
+  };
 });
 
 app.post('/api/reset', (req) => {

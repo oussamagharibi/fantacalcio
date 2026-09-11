@@ -228,3 +228,21 @@ CREATE TABLE IF NOT EXISTS analisi_foto (
   output_tokens INTEGER,
   costo REAL
 );
+
+-- "Analizza la giornata": una riga per premuta del pulsante.
+-- contenuto e' il JSON delle quattro sezioni piu' il contorno: i buchi
+-- dichiarati, le voci scartate e la classifica usata per pesare gli
+-- avversari. La classifica ci finisce dentro apposta: a distanza di settimane
+-- un consiglio si rilegge solo sapendo su quali numeri era stato dato, e
+-- quelli intanto sono cambiati.
+CREATE TABLE IF NOT EXISTS analisi_giornata (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT,
+  giornata INTEGER,
+  modulo TEXT,
+  contenuto TEXT,
+  modello TEXT,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  costo REAL
+);

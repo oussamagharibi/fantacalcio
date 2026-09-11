@@ -80,3 +80,11 @@ export const getFoto = () => json('/api/foto');
 /** Da estrazione a segnale: una voce alla volta, decisa da chi guarda.
  *  Con { annulla: true } toglie la conferma. Torna lo stato aggiornato. */
 export const postConfermaFoto = (corpo) => invia('/api/foto/conferma', corpo);
+
+/** "Analizza la giornata": storico, stima e buchi dichiarati. Non spende
+ *  niente - serve a sapere cosa succederebbe premendo. */
+export const getGiornata = () => json('/api/giornata');
+
+/** La premuta del pulsante: raccoglie, scarica la classifica, chiede a Claude.
+ *  E' l'unica cosa qui dentro che costa, e parte solo da un click. */
+export const postGiornata = (corpo = {}) => invia('/api/giornata/analizza', corpo);

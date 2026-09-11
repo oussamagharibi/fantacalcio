@@ -960,3 +960,44 @@ input[type='file'] { padding: 6px; cursor: pointer; }
   .foto-voce { grid-template-columns: 1fr auto; grid-auto-flow: row; }
   .foto-nota { grid-column: 1 / -1; }
 }
+
+/* Analizza la giornata. Le quattro sezioni hanno pesi diversi: l'undici e'
+   quello che si copia, i rischi quello che si legge prima di copiarlo. */
+.gio-analisi h5 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 6px; }
+.gio-mod { font-size: 13px; padding: 7px 10px; border-radius: 6px; border-left: 3px solid var(--line); background: var(--card-alta); }
+.gio-mod.si { border-left-color: var(--ok); }
+.gio-mod.no { border-left-color: var(--oro); }
+.gio-perche { font-size: 13px; margin-top: 6px; color: var(--fg); }
+
+.gio-controlli { list-style: none; display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 12.5px; }
+.gio-controlli.ok { font-size: 12px; margin-top: 8px; }
+.gio-controlli li { display: flex; align-items: baseline; gap: 7px; }
+.gio-controlli li.errore { color: var(--ko); }
+.gio-controlli li.nota { color: var(--oro); }
+.gio-segno { font-weight: 700; }
+
+.gio-undici { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.gio-undici > li { display: flex; gap: 10px; align-items: flex-start; }
+.gio-undici > li > ul { list-style: none; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.gio-undici > li > ul > li { display: flex; align-items: center; gap: 7px; font-size: 13px; flex-wrap: wrap; }
+.gio-reparto { width: 22px; flex: none; font-size: 11px; font-weight: 700; color: var(--muted); padding-top: 3px; }
+.gio-contro { font-size: 11.5px; }
+.gio-motivo { font-size: 12px; color: var(--muted); font-style: italic; }
+
+.gio-panchina { display: flex; flex-direction: column; gap: 3px; padding-left: 20px; }
+.gio-panchina li { font-size: 13px; }
+.gio-panchina li > * { vertical-align: middle; margin-right: 6px; }
+
+.gio-ballo { list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.gio-ballo li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 5px 6px; border-radius: 6px; background: var(--card-alta); }
+.gio-ramo { font-size: 12px; padding-left: 8px; border-left: 2px solid var(--line); }
+.gio-ramo.ok { border-left-color: var(--ok); }
+.gio-ramo.no { border-left-color: var(--ko); }
+
+.gio-rischi { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.gio-rischi li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.gio-tipo { flex: none; }
+.gio-tipo.non-gioca { border-color: var(--ko); color: var(--ko); }
+.gio-tipo.difesa-forte { border-color: var(--oro); color: var(--oro); }
+.gio-tipo.rientro { border-color: var(--acc); color: var(--acc); }
+.gio-esclusi { font-size: 12px; margin-top: 10px; }

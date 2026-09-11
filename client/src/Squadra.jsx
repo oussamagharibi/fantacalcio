@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { BadgeGiocatore, BadgeSquadra } from './Badge.jsx';
 import { ChipRigorista, ChipParaRigori } from './Chips.jsx';
 import Foto from './Foto.jsx';
+import Giornata from './Giornata.jsx';
 import Gestione from './Gestione.jsx';
 import { RUOLI as RUOLI_NOMI } from './squadre.js';
 import { postRosa } from './api.js';
@@ -450,6 +451,10 @@ export default function Squadra({ stato, onStato, onApri, onAvviso }) {
           ))}
         </ul>
       </section>
+
+      {/* Il secondo parere sulla stessa domanda della formazione qui sopra,
+          e quindi subito dopo: le due si leggono a confronto. */}
+      <Giornata onAvviso={onAvviso} />
 
       {/* Analisi da foto: sta dopo la panchina perche risponde alla stessa
           domanda - chi gioca domenica - e prima della gestione, che guarda
